@@ -1,0 +1,107 @@
+{% extends 'base.html' %}
+
+{% block title %}Pharmacy Stock Inventory - HMS{% endblock %}
+{% block header_title %}Pharmacy & Medical Stock Inventory{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h5 class="fw-bold m-0">Stock Inventory Management</h5>
+        <small class="text-muted">Track medicines, medical supplies, reorder levels, and expiry dates</small>
+    </div>
+    <a href="{{ url_for('stock_create') }}" class="btn btn-primary rounded-pill px-3 shadow-sm">
+        <i class="fa-solid fa-plus me-1"></i> Add New Stock Item
+    </a>
+</div>
+
+<!-- Search & Category Filter Card -->
+<div class="card-custom p-3 mb-4">
+    <form action="{{ url_for('stock_list') }}" method="GET" class="row g-2">
+        <div class="col-md-6">
+            <div class="input-group">
+                <span class="input-group-text bg-white border-end-0"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
+                <input type="text" name="search" class="form-control border-start-0" placeholder="Search medicine name or batch number..." value="{{ search_query }}">
+            </div>
+        </div>
+        <div class="col-md-4">
+            <select name="category" class="form-select">
+                <option value="">All Categories</option>
+                {% for cat in ['Tablet', 'Capsule', 'Syrup', 'Injection', 'Ointment', 'Equipment', 'Supplies'] %}
+                    <option value="{{ cat }}" {% if selected_category == cat %}selected{% endif %}>{{ cat }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-2 d-flex gap-2">
+            <button type="submit" class="btn btn-secondary w-100">Filter</button>
+            {% if search_query or selected_category %}
+                <a href="{{ url_for('stock_list') }}" class="btn btn-outline-light border text-dark">Reset</a>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+<!-- Stock Items Table -->
+<div class="card-custom p-3">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle table-custom">
+            <thead>
+                <tr>
+                    <th>Item / Medicine Name</th>
+                    <th>Category</th>
+                    <th>Batch #</th>
+                    <th>Cost Price</th>
+                    <th>Selling Price</th>
+                    <th>Available Qty</th>
+                    <th>Reorder Level</th>
+                    <th>Expiry Date</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items %}
+                    <tr class="{% if item.is_low_stock %}table-warning{% endif %}">
+                        <td class="fw-semibold text-dark">
+                            {{ item.item_name }}
+                            {% if item.is_low_stock %}
+                                <span class="badge bg-warning text-dark ms-1"><i class="fa-solid fa-triangle-exclamation"></i> Low Stock</span>
+                            {% endif %}
+                        </td>
+                        <td><span class="badge bg-light text-dark border">{{ item.category }}</span></td>
+                        <td class="small text-muted">{{ item.batch_number or 'N/A' }}</td>
+                        <td class="small text-muted">₹{{ "%.2f"|format(item.cost_price) }}</td>
+                        <td class="fw-bold text-success">₹{{ "%.2f"|format(item.selling_price) }}</td>
+                        <td>
+                            <span class="badge {% if item.quantity <= 0 %}bg-danger{% elif item.is_low_stock %}bg-warning text-dark{% else %}bg-success{% endif %} fs-7 px-2">
+                                {{ item.quantity }} Units
+                            </span>
+                        </td>
+                        <td class="small text-muted">{{ item.min_reorder_level }}</td>
+                        <td class="small {% if item.expiry_date %}text-dark{% else %}text-muted{% endif %}">
+                            {{ item.expiry_date.strftime('%Y-%m-%d') if item.expiry_date else 'N/A' }}
+                        </td>
+                        <td class="text-end">
+                            <div class="btn-group btn-group-sm">
+                                <a href="{{ url_for('stock_edit', item_id=item.id) }}" class="btn btn-light border" title="Edit Item">
+                                    <i class="fa-solid fa-pen text-secondary"></i>
+                                </a>
+                                <form action="{{ url_for('stock_delete', item_id=item.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Delete this stock item?');">
+                                    <button type="submit" class="btn btn-light border text-danger" title="Delete Item">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="9" class="text-center text-muted py-4">
+                            <i class="fa-solid fa-boxes-stacked fs-2 mb-2 text-secondary"></i><br>
+                            No inventory items found matching filters.
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

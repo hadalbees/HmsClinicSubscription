@@ -1,0 +1,107 @@
+{% extends 'base.html' %}
+
+{% block title %}Medical Billing Invoices - HMS{% endblock %}
+{% block header_title %}Medical Billing & Patient Invoices{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h5 class="fw-bold m-0">Medical Billing Directory</h5>
+        <small class="text-muted">Manage patient invoices, payment status, and printable receipts</small>
+    </div>
+    <a href="{{ url_for('billing_create') }}" class="btn btn-primary rounded-pill px-3 shadow-sm">
+        <i class="fa-solid fa-receipt me-1"></i> Create New Bill
+    </a>
+</div>
+
+<!-- Search & Status Filters Card -->
+<div class="card-custom p-3 mb-4">
+    <form action="{{ url_for('billing_list') }}" method="GET" class="row g-2">
+        <div class="col-md-6">
+            <div class="input-group">
+                <span class="input-group-text bg-white border-end-0"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
+                <input type="text" name="search" class="form-control border-start-0" placeholder="Search Invoice # or Patient Name..." value="{{ search_query }}">
+            </div>
+        </div>
+        <div class="col-md-4">
+            <select name="status" class="form-select">
+                <option value="">All Payment Statuses</option>
+                <option value="Paid" {% if selected_status == 'Paid' %}selected{% endif %}>Paid</option>
+                <option value="Partial" {% if selected_status == 'Partial' %}selected{% endif %}>Partial</option>
+                <option value="Unpaid" {% if selected_status == 'Unpaid' %}selected{% endif %}>Unpaid</option>
+            </select>
+        </div>
+        <div class="col-md-2 d-flex gap-2">
+            <button type="submit" class="btn btn-secondary w-100">Filter</button>
+            {% if search_query or selected_status %}
+                <a href="{{ url_for('billing_list') }}" class="btn btn-outline-light border text-dark">Reset</a>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+<!-- Invoices Table -->
+<div class="card-custom p-3">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle table-custom">
+            <thead>
+                <tr>
+                    <th>Bill #</th>
+                    <th>Patient Name</th>
+                    <th>Doctor</th>
+                    <th>Total Amount</th>
+                    <th>Paid Amount</th>
+                    <th>Payment Status</th>
+                    <th>Method</th>
+                    <th>Date</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for b in bills %}
+                    <tr>
+                        <td><span class="badge bg-primary-subtle text-primary border border-primary-subtle fw-bold">{{ b.bill_no }}</span></td>
+                        <td>
+                            <div class="fw-semibold text-dark">{{ b.patient_name }}</div>
+                            <div class="small text-muted">{{ b.patient_phone or '' }}</div>
+                        </td>
+                        <td>{{ b.doctor_name or 'General' }}</td>
+                        <td class="fw-bold text-dark">₹{{ "%.2f"|format(b.total_amount) }}</td>
+                        <td class="text-success">₹{{ "%.2f"|format(b.paid_amount) }}</td>
+                        <td>
+                            {% if b.payment_status == 'Paid' %}
+                                <span class="badge bg-success">Paid</span>
+                            {% elif b.payment_status == 'Partial' %}
+                                <span class="badge bg-warning text-dark">Partial</span>
+                            {% else %}
+                                <span class="badge bg-danger">Unpaid</span>
+                            {% endif %}
+                        </td>
+                        <td><span class="badge bg-light text-dark border">{{ b.payment_method }}</span></td>
+                        <td class="small text-muted">{{ b.created_at.strftime('%Y-%m-%d') }}</td>
+                        <td class="text-end">
+                            <div class="btn-group btn-group-sm">
+                                <a href="{{ url_for('billing_print', bill_id=b.id) }}" class="btn btn-light border" title="Print Invoice / Receipt">
+                                    <i class="fa-solid fa-print text-primary"></i>
+                                </a>
+                                <form action="{{ url_for('billing_delete', bill_id=b.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Delete this invoice record?');">
+                                    <button type="submit" class="btn btn-light border text-danger" title="Delete Bill">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="9" class="text-center text-muted py-4">
+                            <i class="fa-solid fa-file-invoice-dollar fs-2 mb-2 text-secondary"></i><br>
+                            No billing records found matching criteria.
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

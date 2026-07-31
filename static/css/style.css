@@ -1,0 +1,192 @@
+/* HMS Custom Modern Styling */
+:root {
+    --primary-color: #0f172a;
+    --accent-color: #2563eb;
+    --accent-hover: #1d4ed8;
+    --bg-light: #f8fafc;
+    --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    --sidebar-width: 260px;
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background-color: var(--bg-light);
+    color: #334155;
+}
+
+/* Sidebar Navigation */
+.app-wrapper {
+    display: flex;
+    min-height: 100vh;
+}
+
+.sidebar {
+    width: var(--sidebar-width);
+    background: #0f172a;
+    color: #f8fafc;
+    flex-shrink: 0;
+    transition: all 0.3s ease;
+}
+
+.sidebar-brand {
+    padding: 1.5rem;
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: #ffffff;
+    border-bottom: 1px solid #1e293b;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.sidebar-brand i {
+    color: #38bdf8;
+}
+
+.sidebar-menu {
+    padding: 1rem 0;
+    list-style: none;
+    margin: 0;
+}
+
+.sidebar-heading {
+    padding: 0.75rem 1.5rem 0.25rem;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #64748b;
+    font-weight: 600;
+}
+
+.sidebar-link {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 0.75rem 1.5rem;
+    color: #94a3b8;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.sidebar-link:hover, .sidebar-link.active {
+    color: #ffffff;
+    background: #1e293b;
+    border-left: 4px solid #38bdf8;
+}
+
+.sidebar-link i {
+    font-size: 1.1rem;
+    width: 20px;
+    text-align: center;
+}
+
+/* Main Content Area */
+.main-content {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden;
+}
+
+/* Top Navbar */
+.top-navbar {
+    background: #ffffff;
+    border-bottom: 1px solid #e2e8f0;
+    padding: 0.85rem 1.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+/* Stat Cards */
+.stat-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 1.35rem;
+    box-shadow: var(--card-shadow);
+    transition: transform 0.2s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+}
+
+.stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+}
+
+.stat-icon.primary { background: #dbeafe; color: #2563eb; }
+.stat-icon.success { background: #dcfce7; color: #16a34a; }
+.stat-icon.warning { background: #fef3c7; color: #d97706; }
+.stat-icon.danger  { background: #fee2e2; color: #dc2626; }
+.stat-icon.info    { background: #e0f2fe; color: #0284c7; }
+.stat-icon.purple  { background: #f3e8ff; color: #9333ea; }
+
+/* Custom Cards & Tables */
+.card-custom {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    box-shadow: var(--card-shadow);
+}
+
+.card-custom .card-header {
+    background: transparent;
+    border-bottom: 1px solid #f1f5f9;
+    padding: 1rem 1.35rem;
+    font-weight: 600;
+}
+
+.table-custom {
+    margin-bottom: 0;
+}
+
+.table-custom th {
+    background: #f8fafc;
+    color: #475569;
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.table-custom td {
+    vertical-align: middle;
+}
+
+/* Badges */
+.badge-status {
+    padding: 0.35em 0.75em;
+    border-radius: 20px;
+    font-size: 0.78rem;
+    font-weight: 600;
+}
+
+/* Print Invoice & Prescription Styling */
+@media print {
+    .sidebar, .top-navbar, .no-print, .btn-print-hide {
+        display: none !important;
+    }
+    .main-content {
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    body {
+        background: #ffffff !important;
+    }
+    .printable-document {
+        box-shadow: none !important;
+        border: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+}

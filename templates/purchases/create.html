@@ -1,0 +1,310 @@
+{% extends 'base.html' %}
+
+{% block title %}Record Supplier Purchase Bill - HMS{% endblock %}
+{% block header_title %}Supplier Purchase Bill (Inward Stock & Expense Entry){% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-11">
+        <div class="card-custom p-4">
+            <div class="d-flex align-items-center justify-content-between border-bottom pb-3 mb-4">
+                <div>
+                    <h5 class="fw-bold m-0 text-primary"><i class="fa-solid fa-cart-flatbed me-2"></i>Record Supplier Purchase Bill</h5>
+                    <small class="text-muted">Receive new medicine stock from supplier (Auto-increases inventory & logs financial expense)</small>
+                </div>
+                <a href="{{ url_for('purchases_list') }}" class="btn btn-outline-secondary btn-sm rounded-pill">
+                    <i class="fa-solid fa-arrow-left me-1"></i> Back to Purchases
+                </a>
+            </div>
+
+            <form action="{{ url_for('purchases_create') }}" method="POST">
+                <!-- Supplier Info Header -->
+                <div class="row g-3 mb-4 bg-light p-3 rounded border">
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold small text-muted">Supplier / Vendor Name *</label>
+                        <input type="text" name="supplier_name" class="form-control" placeholder="e.g. Sun Pharma Distributors" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold small text-muted">Supplier Invoice / Bill #</label>
+                        <input type="text" name="supplier_invoice_no" class="form-control" placeholder="e.g. INV-9901">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold small text-muted">Purchase Date *</label>
+                        <input type="date" name="purchase_date" class="form-control" value="{{ today_date }}" required>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label fw-semibold small text-muted">Payment Status *</label>
+                        <select name="payment_status" class="form-select" required>
+                            <option value="Paid">Paid</option>
+                            <option value="Partial">Partial</option>
+                            <option value="Unpaid">Unpaid</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Purchase Line Items -->
+                <div class="mb-4">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <h6 class="fw-bold text-dark m-0"><i class="fa-solid fa-boxes-packing text-primary me-2"></i>Received Medicine Stock Items</h6>
+                        <button type="button" id="btn-add-pur-item" class="btn btn-sm btn-outline-primary rounded-pill">
+                            <i class="fa-solid fa-plus me-1"></i> Add Purchase Item
+                        </button>
+                    </div>
+
+                    <div id="pur-items-container">
+                        <!-- Row 1 -->
+                        <div class="p-3 rounded bg-light border mb-3 pur-item-row">
+                            <div class="row g-2 mb-2">
+                                <div class="col-md-4">
+                                    <label class="form-label small text-muted">Existing Stock Medicine (Optional)</label>
+                                    <select class="form-select form-select-sm pur-stock-select">
+                                        <option value="">-- New Medicine / Pick Stock --</option>
+                                        {% for s in stock_items %}
+                                            <option value="{{ s.id }}" data-name="{{ s.item_name }}" data-category="{{ s.category }}" data-cost="{{ s.cost_price }}" data-sell="{{ s.selling_price }}">
+                                                {{ s.item_name }} (Current Stock: {{ s.quantity }})
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                    <input type="hidden" name="stock_id[]" class="pur-stock-id">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label small text-muted">Item / Medicine Name *</label>
+                                    <input type="text" name="item_name[]" class="form-control form-control-sm pur-item-name" placeholder="e.g. Paracetamol 500mg" required>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label small text-muted">Category *</label>
+                                    <select name="category[]" class="form-select form-select-sm pur-category">
+                                        <option value="Tablet">Tablet</option>
+                                        <option value="Capsule">Capsule</option>
+                                        <option value="Syrup">Syrup</option>
+                                        <option value="Injection">Injection</option>
+                                        <option value="Ointment">Ointment</option>
+                                        <option value="Equipment">Equipment</option>
+                                        <option value="Supplies">Supplies</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label small text-muted">Batch Number</label>
+                                    <input type="text" name="batch_number[]" class="form-control form-control-sm" placeholder="BATCH-2026">
+                                </div>
+                            </div>
+
+                            <!-- Strip / Pack Converter Row -->
+                            <div class="row g-2 align-items-center">
+                                <div class="col-md-2">
+                                    <label class="form-label small text-muted">Strips Received</label>
+                                    <input type="number" name="strip_quantity[]" class="form-control form-control-sm pur-strips" placeholder="e.g. 10" min="0">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label small text-muted">Tabs / Strip</label>
+                                    <input type="number" name="tablets_per_strip[]" class="form-control form-control-sm pur-tabs-per-strip" placeholder="10" value="10" min="1">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label small text-muted">Total Units (Tablets) *</label>
+                                    <input type="number" name="quantity[]" class="form-control form-control-sm pur-qty" placeholder="100" min="1" required>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label small text-muted">Cost Price / Unit (₹) *</label>
+                                    <input type="number" step="0.01" name="cost_price[]" class="form-control form-control-sm pur-cost" placeholder="0.00" required>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label small text-muted">Selling Price / Unit (₹) *</label>
+                                    <input type="number" step="0.01" name="selling_price[]" class="form-control form-control-sm pur-sell" placeholder="0.00" required>
+                                </div>
+                                <div class="col-md-1">
+                                    <label class="form-label small text-muted">Expiry Date</label>
+                                    <input type="date" name="expiry_date[]" class="form-control form-control-sm">
+                                </div>
+                                <div class="col-md-1 text-end pt-3">
+                                    <button type="button" class="btn btn-sm btn-outline-danger btn-remove-pur-row" title="Remove Row">
+                                        <i class="fa-solid fa-xmark"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer Summary Bar -->
+                <div class="row bg-light p-3 rounded border mb-4 align-items-center">
+                    <div class="col-md-6">
+                        <label class="form-label small text-muted fw-semibold">Payment Method *</label>
+                        <select name="payment_method" class="form-select form-select-sm" required>
+                            <option value="Bank Transfer">Bank Transfer / NEFT</option>
+                            <option value="Cash">Cash</option>
+                            <option value="Cheque">Cheque</option>
+                            <option value="UPI">UPI / Digital Payment</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6 text-end">
+                        <span class="text-muted fw-semibold">Total Purchase Cost:</span>
+                        <h3 class="fw-bold text-danger m-0 d-inline-block ms-2" id="total-purchase-cost">₹0.00</h3>
+                        <input type="hidden" name="total_amount" id="input_total_purchase_cost">
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label fw-semibold small text-muted">Purchase Notes / Remarks</label>
+                    <input type="text" name="notes" class="form-control" placeholder="e.g. Received 10 strips of Azithromycin from distributor...">
+                </div>
+
+                <div class="d-flex justify-content-end gap-2 border-top pt-3">
+                    <a href="{{ url_for('purchases_list') }}" class="btn btn-light border px-4">Cancel</a>
+                    <button type="submit" class="btn btn-primary px-4 rounded-pill shadow-sm">
+                        <i class="fa-solid fa-floppy-disk me-1"></i> Save Purchase Bill & Update Stock
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Dynamic Row Template -->
+<template id="pur-item-template">
+    <div class="p-3 rounded bg-light border mb-3 pur-item-row">
+        <div class="row g-2 mb-2">
+            <div class="col-md-4">
+                <select class="form-select form-select-sm pur-stock-select">
+                    <option value="">-- New Medicine / Pick Stock --</option>
+                    {% for s in stock_items %}
+                        <option value="{{ s.id }}" data-name="{{ s.item_name }}" data-category="{{ s.category }}" data-cost="{{ s.cost_price }}" data-sell="{{ s.selling_price }}">
+                            {{ s.item_name }} (Current Stock: {{ s.quantity }})
+                        </option>
+                    {% endfor %}
+                </select>
+                <input type="hidden" name="stock_id[]" class="pur-stock-id">
+            </div>
+            <div class="col-md-4">
+                <input type="text" name="item_name[]" class="form-control form-control-sm pur-item-name" placeholder="e.g. Paracetamol 500mg" required>
+            </div>
+            <div class="col-md-2">
+                <select name="category[]" class="form-select form-select-sm pur-category">
+                    <option value="Tablet">Tablet</option>
+                    <option value="Syrup">Syrup</option>
+                    <option value="Injection">Injection</option>
+                    <option value="Ointment">Ointment</option>
+                    <option value="Equipment">Equipment</option>
+                    <option value="Supplies">Supplies</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <input type="text" name="batch_number[]" class="form-control form-control-sm" placeholder="BATCH-2026">
+            </div>
+        </div>
+
+        <div class="row g-2 align-items-center">
+            <div class="col-md-2">
+                <input type="number" name="strip_quantity[]" class="form-control form-control-sm pur-strips" placeholder="e.g. 10" min="0">
+            </div>
+            <div class="col-md-2">
+                <input type="number" name="tablets_per_strip[]" class="form-control form-control-sm pur-tabs-per-strip" placeholder="10" value="10" min="1">
+            </div>
+            <div class="col-md-2">
+                <input type="number" name="quantity[]" class="form-control form-control-sm pur-qty" placeholder="100" min="1" required>
+            </div>
+            <div class="col-md-2">
+                <input type="number" step="0.01" name="cost_price[]" class="form-control form-control-sm pur-cost" placeholder="0.00" required>
+            </div>
+            <div class="col-md-2">
+                <input type="number" step="0.01" name="selling_price[]" class="form-control form-control-sm pur-sell" placeholder="0.00" required>
+            </div>
+            <div class="col-md-1">
+                <input type="date" name="expiry_date[]" class="form-control form-control-sm">
+            </div>
+            <div class="col-md-1 text-end pt-3">
+                <button type="button" class="btn btn-sm btn-outline-danger btn-remove-pur-row">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</template>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const container = document.getElementById('pur-items-container');
+    const btnAdd = document.getElementById('btn-add-pur-item');
+
+    function calculateTotalPurchase() {
+        let grandTotal = 0;
+        document.querySelectorAll('.pur-item-row').forEach(row => {
+            const qty = parseFloat(row.querySelector('.pur-qty').value) || 0;
+            const cost = parseFloat(row.querySelector('.pur-cost').value) || 0;
+            grandTotal += (qty * cost);
+        });
+        document.getElementById('total-purchase-cost').textContent = '₹' + grandTotal.toFixed(2);
+        document.getElementById('input_total_purchase_cost').value = grandTotal.toFixed(2);
+    }
+
+    if (btnAdd) {
+        btnAdd.addEventListener('click', function() {
+            const template = document.getElementById('pur-item-template');
+            if (template) {
+                const clone = template.content.cloneNode(true);
+                container.appendChild(clone);
+                attachPurEvents(container.lastElementChild);
+                calculateTotalPurchase();
+            }
+        });
+    }
+
+    function attachPurEvents(row) {
+        const selectStock = row.querySelector('.pur-stock-select');
+        const inputStockId = row.querySelector('.pur-stock-id');
+        const inputName = row.querySelector('.pur-item-name');
+        const selectCat = row.querySelector('.pur-category');
+        const inputCost = row.querySelector('.pur-cost');
+        const inputSell = row.querySelector('.pur-sell');
+
+        const inputStrips = row.querySelector('.pur-strips');
+        const inputTabsPerStrip = row.querySelector('.pur-tabs-per-strip');
+        const inputQty = row.querySelector('.pur-qty');
+
+        if (selectStock) {
+            selectStock.addEventListener('change', function() {
+                const opt = selectStock.options[selectStock.selectedIndex];
+                if (opt.value) {
+                    inputStockId.value = opt.value;
+                    inputName.value = opt.getAttribute('data-name') || '';
+                    selectCat.value = opt.getAttribute('data-category') || 'Tablet';
+                    inputCost.value = opt.getAttribute('data-cost') || '0';
+                    inputSell.value = opt.getAttribute('data-sell') || '0';
+                } else {
+                    inputStockId.value = '';
+                }
+                calculateTotalPurchase();
+            });
+        }
+
+        function autoCalcUnits() {
+            const strips = parseFloat(inputStrips.value) || 0;
+            const tabsPerStrip = parseFloat(inputTabsPerStrip.value) || 1;
+            if (strips > 0 && tabsPerStrip > 0) {
+                inputQty.value = Math.round(strips * tabsPerStrip);
+            }
+            calculateTotalPurchase();
+        }
+
+        if (inputStrips) inputStrips.addEventListener('input', autoCalcUnits);
+        if (inputTabsPerStrip) inputTabsPerStrip.addEventListener('input', autoCalcUnits);
+        if (inputQty) inputQty.addEventListener('input', calculateTotalPurchase);
+        if (inputCost) inputCost.addEventListener('input', calculateTotalPurchase);
+
+        const btnRemove = row.querySelector('.btn-remove-pur-row');
+        if (btnRemove) {
+            btnRemove.addEventListener('click', function() {
+                if (container.children.length > 1) {
+                    row.remove();
+                    calculateTotalPurchase();
+                } else {
+                    alert('At least one item is required in the purchase bill.');
+                }
+            });
+        }
+    }
+
+    document.querySelectorAll('.pur-item-row').forEach(row => attachPurEvents(row));
+    calculateTotalPurchase();
+});
+</script>
+{% endblock %}

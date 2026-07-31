@@ -1,0 +1,300 @@
+{% extends 'base.html' %}
+
+{% block title %}Create E-Prescription - HMS{% endblock %}
+{% block header_title %}New Electronic Prescription (E-Rx){% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <div class="card-custom p-4">
+            <div class="d-flex align-items-center justify-content-between border-bottom pb-3 mb-4">
+                <div>
+                    <h5 class="fw-bold m-0 text-success"><i class="fa-solid fa-file-prescription me-2"></i>Create E-Prescription</h5>
+                    <small class="text-muted">Prescribe medicines, vitals, diagnosis, and patient instructions</small>
+                </div>
+                <a href="{{ url_for('prescriptions_list') }}" class="btn btn-outline-secondary btn-sm rounded-pill">
+                    <i class="fa-solid fa-arrow-left me-1"></i> Back to Prescriptions
+                </a>
+            </div>
+
+            <form action="{{ url_for('prescription_create') }}" method="POST">
+                <!-- Patient & Doctor Details Section -->
+                <div class="row g-3 mb-4 bg-light p-3 rounded border">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold small text-muted">Select Registered Patient *</label>
+                        <select name="patient_id" id="patient_select" class="form-select" required>
+                            <option value="">-- Choose Patient --</option>
+                            {% for p in patients %}
+                                <option value="{{ p.id }}" {% if selected_patient_id == p.id %}selected{% endif %}>
+                                    {{ p.name }} (Code: {{ p.patient_code }} | Phone: {{ p.phone }})
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold small text-muted">Attending Doctor Name *</label>
+                        <input type="text" name="doctor_name" class="form-control" placeholder="Dr. Sarah Jenkins, M.D." value="Dr. Sarah Jenkins, M.D." required>
+                    </div>
+                </div>
+
+                <!-- Nurse Vitals Auto-Load Notification Banner -->
+                <div id="vitals_notice_banner" class="alert alert-success d-none py-2 px-3 mb-3 small align-items-center">
+                    <i class="fa-solid fa-user-nurse fs-5 me-2 text-success"></i>
+                    <div id="vitals_notice_text"><strong>Nurse Vitals Auto-Loaded:</strong> Recorded by Nurse today.</div>
+                </div>
+
+                <!-- Patient Vitals Section -->
+                <div class="mb-4">
+                    <h6 class="fw-bold text-dark mb-3"><i class="fa-solid fa-heart-pulse text-danger me-2"></i>Patient Vitals</h6>
+                    <div class="row g-3 bg-white p-3 rounded border">
+                        <div class="col-md-3">
+                            <label class="form-label small text-muted">Blood Pressure (BP)</label>
+                            <input type="text" name="vitals_bp" id="vitals_bp" class="form-control form-control-sm" placeholder="e.g. 120/80 mmHg" value="{{ initial_vitals.bp if initial_vitals else '' }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small text-muted">Pulse Rate</label>
+                            <input type="text" name="vitals_pulse" id="vitals_pulse" class="form-control form-control-sm" placeholder="e.g. 72 bpm" value="{{ initial_vitals.pulse if initial_vitals else '' }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small text-muted">Body Temp</label>
+                            <input type="text" name="vitals_temp" id="vitals_temp" class="form-control form-control-sm" placeholder="e.g. 98.6 °F" value="{{ initial_vitals.temp if initial_vitals else '' }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small text-muted">Body Weight</label>
+                            <input type="text" name="vitals_weight" id="vitals_weight" class="form-control form-control-sm" placeholder="e.g. 68 kg" value="{{ initial_vitals.weight if initial_vitals else '' }}">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Diagnosis / Complaints -->
+                <div class="mb-4">
+                    <label class="form-label fw-semibold small text-muted">Clinical Diagnosis & Complaints</label>
+                    <textarea name="diagnosis" class="form-control" rows="2" placeholder="e.g. Acute Upper Respiratory Tract Infection, Fever for 2 days..."></textarea>
+                </div>
+
+                <!-- Live Medicine Search Datalist -->
+                <datalist id="stock_medicine_datalist">
+                    {% for s in stock_items %}
+                        <option value="{{ s.item_name }}" data-id="{{ s.id }}" data-unit="{{ s.category }}" data-stock="{{ s.quantity }}">
+                            Category: {{ s.category }} | In Stock: {{ s.quantity }}
+                        </option>
+                    {% endfor %}
+                </datalist>
+
+                <!-- Prescribed Medicines Dynamic Section -->
+                <div class="mb-4">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <h6 class="fw-bold text-dark m-0"><i class="fa-solid fa-pills text-primary me-2"></i>Prescribed Medicines</h6>
+                        <button type="button" id="btn-add-rx-item" class="btn btn-sm btn-outline-success rounded-pill">
+                            <i class="fa-solid fa-plus me-1"></i> Add Medicine Row
+                        </button>
+                    </div>
+
+                    <!-- Column Header Bar -->
+                    <div class="row g-2 px-2 py-1 bg-secondary bg-opacity-10 rounded fw-semibold text-muted small d-none d-md-flex mb-1">
+                        <div class="col-md-3">🔍 Search Stock Medicine</div>
+                        <div class="col-md-2">Medicine Name</div>
+                        <div class="col-md-1">Unit</div>
+                        <div class="col-md-2">Dosage</div>
+                        <div class="col-md-1">Duration</div>
+                        <div class="col-md-1">Qty</div>
+                        <div class="col-md-2">Food Timing</div>
+                    </div>
+
+                    <div id="rx-items-container">
+                        <!-- Default Row 1 -->
+                        <div class="row g-2 align-items-center mb-2 rx-item-row p-2 rounded bg-light border">
+                            <div class="col-md-3 position-relative">
+                                <label class="form-label small text-muted mb-1 d-md-none">Search Stock</label>
+                                <input type="text" class="form-control form-control-sm rx-stock-search" placeholder="🔍 Type medicine..." autocomplete="off">
+                                <div class="dropdown-menu shadow-lg w-100 rx-suggestion-box p-0 mt-1" style="display: none; position: absolute; top: 100%; left: 0; z-index: 1050; max-height: 220px; overflow-y: auto;"></div>
+                                <input type="hidden" name="medicine_id[]" class="rx-medicine-id">
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label small text-muted mb-1 d-md-none">Name</label>
+                                <input type="text" name="medicine_name[]" class="form-control form-control-sm rx-med-name" placeholder="Medicine Name" required>
+                            </div>
+                            <div class="col-md-1">
+                                <label class="form-label small text-muted mb-1 d-md-none">Unit</label>
+                                <select name="unit[]" class="form-select form-select-sm rx-unit">
+                                    <option value="Tablet">Tablet</option>
+                                    <option value="Capsule">Capsule</option>
+                                    <option value="Syrup">Syrup</option>
+                                    <option value="Injection">Injection</option>
+                                    <option value="Ointment">Ointment</option>
+                                    <option value="Equipment">Equipment</option>
+                                    <option value="Supplies">Supplies</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label small text-muted mb-1 d-md-none">Dosage</label>
+                                <select name="dosage[]" class="form-select form-select-sm rx-dosage" required>
+                                    <option value="1-0-1 (Morning & Night)">1-0-1 (Morning & Night)</option>
+                                    <option value="1-1-1 (Thrice Daily)">1-1-1 (Thrice Daily)</option>
+                                    <option value="1-0-0 (Morning Only)">1-0-0 (Morning Only)</option>
+                                    <option value="0-0-1 (Night Only)">0-0-1 (Night Only)</option>
+                                    <option value="0-1-0 (Afternoon Only)">0-1-0 (Afternoon Only)</option>
+                                    <option value="1-1-1-1 (4 Times Daily)">1-1-1-1 (4 Times Daily)</option>
+                                    <option value="1 Tablet Once Daily">1 Tablet Once Daily</option>
+                                    <option value="1 Tablet Twice Daily">1 Tablet Twice Daily</option>
+                                    <option value="5ml Thrice Daily">5ml Thrice Daily</option>
+                                    <option value="10ml Thrice Daily">10ml Thrice Daily</option>
+                                    <option value="SOS (As Needed)">SOS (As Needed)</option>
+                                    <option value="Once Weekly">Once Weekly</option>
+                                </select>
+                            </div>
+                            <div class="col-md-1">
+                                <label class="form-label small text-muted mb-1 d-md-none">Duration</label>
+                                <input type="text" name="duration[]" class="form-control form-control-sm" placeholder="5 Days" value="5 Days" required>
+                            </div>
+                            <div class="col-md-1">
+                                <label class="form-label small text-muted mb-1 d-md-none">Qty</label>
+                                <input type="number" name="qty[]" class="form-control form-control-sm" placeholder="10" value="10" min="1" required>
+                            </div>
+                            <div class="col-md-2 d-flex gap-1 align-items-center">
+                                <select name="food[]" class="form-select form-select-sm">
+                                    <option value="After Food">After Food</option>
+                                    <option value="Before Food">Before Food</option>
+                                    <option value="With Food">With Food</option>
+                                    <option value="Empty Stomach">Empty Stomach</option>
+                                    <option value="At Bedtime">At Bedtime</option>
+                                </select>
+                                <button type="button" class="btn btn-sm btn-outline-danger btn-remove-rx py-1 px-2" title="Remove Row">
+                                    <i class="fa-solid fa-xmark"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Special Instructions / Advice -->
+                <div class="mb-4">
+                    <label class="form-label fw-semibold small text-muted">Special Dietary / Lifestyle Advice</label>
+                    <textarea name="advice" class="form-control" rows="2" placeholder="e.g. Drink plenty of warm water, complete entire course of antibiotics..."></textarea>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2 border-top pt-3">
+                    <a href="{{ url_for('prescriptions_list') }}" class="btn btn-light border px-4">Cancel</a>
+                    <button type="submit" class="btn btn-success px-4 rounded-pill shadow-sm">
+                        <i class="fa-solid fa-check-circle me-1"></i> Save & Generate Prescription
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Template for JavaScript Rx Row Cloner -->
+<template id="rx-item-template">
+    <div class="row g-2 align-items-center mb-2 rx-item-row p-2 rounded bg-light border">
+        <div class="col-md-3 position-relative">
+            <input type="text" class="form-control form-control-sm rx-stock-search" placeholder="🔍 Type medicine..." autocomplete="off">
+            <div class="dropdown-menu shadow-lg w-100 rx-suggestion-box p-0 mt-1" style="display: none; position: absolute; top: 100%; left: 0; z-index: 1050; max-height: 220px; overflow-y: auto;"></div>
+            <input type="hidden" name="medicine_id[]" class="rx-medicine-id">
+        </div>
+        <div class="col-md-2">
+            <input type="text" name="medicine_name[]" class="form-control form-control-sm rx-med-name" placeholder="Medicine Name" required>
+        </div>
+        <div class="col-md-1">
+            <select name="unit[]" class="form-select form-select-sm rx-unit">
+                <option value="Tablet">Tablet</option>
+                <option value="Capsule">Capsule</option>
+                <option value="Syrup">Syrup</option>
+                <option value="Injection">Injection</option>
+                <option value="Ointment">Ointment</option>
+                <option value="Equipment">Equipment</option>
+                <option value="Supplies">Supplies</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <select name="dosage[]" class="form-select form-select-sm rx-dosage" required>
+                <option value="1-0-1 (Morning & Night)">1-0-1 (Morning & Night)</option>
+                <option value="1-1-1 (Thrice Daily)">1-1-1 (Thrice Daily)</option>
+                <option value="1-0-0 (Morning Only)">1-0-0 (Morning Only)</option>
+                <option value="0-0-1 (Night Only)">0-0-1 (Night Only)</option>
+                <option value="0-1-0 (Afternoon Only)">0-1-0 (Afternoon Only)</option>
+                <option value="1-1-1-1 (4 Times Daily)">1-1-1-1 (4 Times Daily)</option>
+                <option value="1 Tablet Once Daily">1 Tablet Once Daily</option>
+                <option value="1 Tablet Twice Daily">1 Tablet Twice Daily</option>
+                <option value="5ml Thrice Daily">5ml Thrice Daily</option>
+                <option value="10ml Thrice Daily">10ml Thrice Daily</option>
+                <option value="SOS (As Needed)">SOS (As Needed)</option>
+                <option value="Once Weekly">Once Weekly</option>
+            </select>
+        </div>
+        <div class="col-md-1">
+            <input type="text" name="duration[]" class="form-control form-control-sm" placeholder="5 Days" required>
+        </div>
+        <div class="col-md-1">
+            <input type="number" name="qty[]" class="form-control form-control-sm" placeholder="10" value="10" min="1" required>
+        </div>
+        <div class="col-md-2 d-flex gap-1 align-items-center">
+            <select name="food[]" class="form-select form-select-sm">
+                <option value="After Food">After Food</option>
+                <option value="Before Food">Before Food</option>
+                <option value="With Food">With Food</option>
+                <option value="Empty Stomach">Empty Stomach</option>
+                <option value="At Bedtime">At Bedtime</option>
+            </select>
+            <button type="button" class="btn btn-sm btn-outline-danger btn-remove-rx py-1 px-2">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+    </div>
+</template>
+
+{% block scripts %}
+<script>
+window.stockItemsList = {{ stock_items_json|tojson if stock_items_json else '[]' }};
+
+document.addEventListener('DOMContentLoaded', function() {
+    const patientSelect = document.getElementById('patient_select');
+    const banner = document.getElementById('vitals_notice_banner');
+    const bannerText = document.getElementById('vitals_notice_text');
+
+    const inputBp = document.getElementById('vitals_bp');
+    const inputPulse = document.getElementById('vitals_pulse');
+    const inputTemp = document.getElementById('vitals_temp');
+    const inputWeight = document.getElementById('vitals_weight');
+
+    function fetchPatientVitals(patientId) {
+        if (!patientId) {
+            if (banner) banner.classList.add('d-none');
+            return;
+        }
+
+        fetch('/api/patients/' + patientId + '/latest-vitals')
+            .then(response => response.json())
+            .then(data => {
+                if (data.found) {
+                    if (inputBp) inputBp.value = data.bp || '';
+                    if (inputPulse) inputPulse.value = data.pulse || '';
+                    if (inputTemp) inputTemp.value = data.temp || '';
+                    if (inputWeight) inputWeight.value = data.weight || '';
+
+                    if (banner && bannerText) {
+                        bannerText.innerHTML = `<strong>Nurse Vitals Auto-Loaded:</strong> Recorded by <u>${data.nurse_name || 'Nurse'}</u> on ${data.recorded_at}.`;
+                        banner.classList.remove('d-none');
+                        banner.classList.add('d-flex');
+                    }
+                } else {
+                    if (banner) banner.classList.add('d-none');
+                }
+            })
+            .catch(err => console.error('Error fetching vitals:', err));
+    }
+
+    if (patientSelect) {
+        patientSelect.addEventListener('change', function() {
+            fetchPatientVitals(this.value);
+        });
+
+        // Trigger on load if initial patient is selected
+        if (patientSelect.value) {
+            fetchPatientVitals(patientSelect.value);
+        }
+    }
+});
+</script>
+{% endblock %}
+{% endblock %}

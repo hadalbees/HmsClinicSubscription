@@ -1,0 +1,117 @@
+{% extends 'base.html' %}
+
+{% block title %}Account Summary & Financial Report - HMS{% endblock %}
+{% block header_title %}Account Summary & Financial Analytics{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h5 class="fw-bold m-0">Financial Summary Report</h5>
+        <small class="text-muted">High-level financial performance, revenue breakdown, and expense structure</small>
+    </div>
+    <button onclick="window.print()" class="btn btn-outline-secondary btn-sm rounded-pill no-print">
+        <i class="fa-solid fa-print me-1"></i> Print Report
+    </button>
+</div>
+
+<!-- Key Financial Indicators -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="stat-card border-success">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <span class="text-muted small fw-semibold text-uppercase">Total Income (Gross Revenue)</span>
+                <div class="stat-icon success">
+                    <i class="fa-solid fa-arrow-down text-success"></i>
+                </div>
+            </div>
+            <h2 class="fw-bold text-success mb-0">₹{{ "%.2f"|format(total_income) }}</h2>
+            <small class="text-muted">From billing & pharmacy revenues</small>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="stat-card border-danger">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <span class="text-muted small fw-semibold text-uppercase">Total Operational Expenses</span>
+                <div class="stat-icon danger">
+                    <i class="fa-solid fa-arrow-up text-danger"></i>
+                </div>
+            </div>
+            <h2 class="fw-bold text-danger mb-0">₹{{ "%.2f"|format(total_expenses) }}</h2>
+            <small class="text-muted">Inventory, salaries, utilities & overheads</small>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="stat-card {% if net_profit >= 0 %}border-primary{% else %}border-danger{% endif %}">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <span class="text-muted small fw-semibold text-uppercase">Net Profit / Operating Surplus</span>
+                <div class="stat-icon {% if net_profit >= 0 %}primary{% else %}danger{% endif %}">
+                    <i class="fa-solid fa-wallet"></i>
+                </div>
+            </div>
+            <h2 class="fw-bold {% if net_profit >= 0 %}text-primary{% else %}text-danger{% endif %} mb-0">₹{{ "%.2f"|format(net_profit) }}</h2>
+            <small class="text-muted">Calculated Net Balance</small>
+        </div>
+    </div>
+</div>
+
+<!-- Category Breakdown Section -->
+<div class="row g-4 mb-4">
+    <div class="col-lg-6">
+        <div class="card-custom p-4 h-100">
+            <h6 class="fw-bold text-dark border-bottom pb-3 mb-3">
+                <i class="fa-solid fa-chart-pie text-success me-2"></i>Income Category Breakdown
+            </h6>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle table-custom">
+                    <thead>
+                        <tr>
+                            <th>Category</th>
+                            <th class="text-end">Total Revenue</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for cat, amt in income_categories.items() %}
+                            <tr>
+                                <td class="fw-medium">{{ cat }}</td>
+                                <td class="text-end fw-bold text-success">₹{{ "%.2f"|format(amt) }}</td>
+                            </tr>
+                        {% else %}
+                            <tr><td colspan="2" class="text-center text-muted">No income categories recorded yet.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card-custom p-4 h-100">
+            <h6 class="fw-bold text-dark border-bottom pb-3 mb-3">
+                <i class="fa-solid fa-chart-pie text-danger me-2"></i>Expense Category Breakdown
+            </h6>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle table-custom">
+                    <thead>
+                        <tr>
+                            <th>Category</th>
+                            <th class="text-end">Total Expenditure</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for cat, amt in expense_categories.items() %}
+                            <tr>
+                                <td class="fw-medium">{{ cat }}</td>
+                                <td class="text-end fw-bold text-danger">₹{{ "%.2f"|format(amt) }}</td>
+                            </tr>
+                        {% else %}
+                            <tr><td colspan="2" class="text-center text-muted">No expense categories recorded yet.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

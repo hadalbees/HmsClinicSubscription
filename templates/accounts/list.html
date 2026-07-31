@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+
+{% block title %}Financial Ledger - HMS{% endblock %}
+{% block header_title %}Financial Ledger (Income & Expenses){% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h5 class="fw-bold m-0">Financial Ledger</h5>
+        <small class="text-muted">Record income revenues and log operational expenses</small>
+    </div>
+    <a href="{{ url_for('accounts_create') }}" class="btn btn-primary rounded-pill px-3 shadow-sm">
+        <i class="fa-solid fa-plus me-1"></i> Log Transaction Entry
+    </a>
+</div>
+
+<!-- Ledger Search & Filters -->
+<div class="card-custom p-3 mb-4">
+    <form action="{{ url_for('accounts_list') }}" method="GET" class="row g-2">
+        <div class="col-md-5">
+            <div class="input-group">
+                <span class="input-group-text bg-white border-end-0"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
+                <input type="text" name="search" class="form-control border-start-0" placeholder="Search Txn # or Category..." value="{{ search_query }}">
+            </div>
+        </div>
+        <div class="col-md-4">
+            <select name="type" class="form-select">
+                <option value="">All Entry Types (Income & Expense)</option>
+                <option value="Income" {% if selected_type == 'Income' %}selected{% endif %}>Income Only</option>
+                <option value="Expense" {% if selected_type == 'Expense' %}selected{% endif %}>Expense Only</option>
+            </select>
+        </div>
+        <div class="col-md-3 d-flex gap-2">
+            <button type="submit" class="btn btn-secondary w-100">Filter</button>
+            {% if search_query or selected_type %}
+                <a href="{{ url_for('accounts_list') }}" class="btn btn-outline-light border text-dark">Reset</a>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+<!-- Account Entries Table -->
+<div class="card-custom p-3">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle table-custom">
+            <thead>
+                <tr>
+                    <th>Txn #</th>
+                    <th>Type</th>
+                    <th>Category</th>
+                    <th>Amount</th>
+                    <th>Reference #</th>
+                    <th>Description</th>
+                    <th>Method</th>
+                    <th>Date</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in entries %}
+                    <tr>
+                        <td><span class="badge bg-light text-dark border">{{ entry.transaction_no }}</span></td>
+                        <td>
+                            {% if entry.entry_type == 'Income' %}
+                                <span class="badge bg-success"><i class="fa-solid fa-arrow-down me-1"></i> Income</span>
+                            {% else %}
+                                <span class="badge bg-danger"><i class="fa-solid fa-arrow-up me-1"></i> Expense</span>
+                            {% endif %}
+                        </td>
+                        <td class="fw-semibold text-dark">{{ entry.category }}</td>
+                        <td class="fw-bold {% if entry.entry_type == 'Income' %}text-success{% else %}text-danger{% endif %}">
+                            {% if entry.entry_type == 'Income' %}+{% else %}-{% endif %}₹{{ "%.2f"|format(entry.amount) }}
+                        </td>
+                        <td class="small text-muted">{{ entry.reference_no or 'N/A' }}</td>
+                        <td class="small text-muted"><span class="text-truncate d-inline-block" style="max-width: 180px;">{{ entry.description or 'N/A' }}</span></td>
+                        <td><span class="badge bg-light text-dark border">{{ entry.payment_method }}</span></td>
+                        <td class="small text-muted">{{ entry.date.strftime('%Y-%m-%d') if entry.date else entry.created_at.strftime('%Y-%m-%d') }}</td>
+                        <td class="text-end">
+                            <form action="{{ url_for('accounts_delete', entry_id=entry.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Delete this ledger entry?');">
+                                <button type="submit" class="btn btn-sm btn-light border text-danger" title="Delete Entry">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="9" class="text-center text-muted py-4">
+                            <i class="fa-solid fa-vault fs-2 mb-2 text-secondary"></i><br>
+                            No ledger transactions recorded yet.
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

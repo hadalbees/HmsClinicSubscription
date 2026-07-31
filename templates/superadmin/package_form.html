@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Edit Package' if package else 'Create Package' }} - Super Admin{% endblock %}
+
+{% block header_title %}
+<span class="text-warning"><i class="fa-solid fa-crown me-2"></i>Super Admin - Package Setup</span>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="d-flex align-items-center justify-content-between mb-4">
+            <div>
+                <h3 class="fw-bold m-0 text-dark">{{ 'Edit Package Details' if package else 'Create Subscription Package' }}</h3>
+                <p class="text-muted small m-0">Define pricing, billing cycle, duration, and feature access</p>
+            </div>
+            <a href="{{ url_for('superadmin_packages') }}" class="btn btn-light btn-sm rounded-pill px-3 border">
+                <i class="fa-solid fa-arrow-left me-1"></i> Back to Packages
+            </a>
+        </div>
+
+        <div class="card border-0 shadow-sm rounded-4">
+            <div class="card-body p-4">
+                <form method="POST" action="{{ url_for('superadmin_package_edit', package_id=package.id) if package else url_for('superadmin_package_create') }}">
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label class="form-label fw-semibold text-dark">Package Name <span class="text-danger">*</span></label>
+                            <input type="text" name="name" class="form-control rounded-3" placeholder="e.g. Starter Monthly Plan, Pro Quarterly, Enterprise Yearly" value="{{ package.name if package else '' }}" required>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold text-dark">Billing Cycle <span class="text-danger">*</span></label>
+                            <select name="billing_cycle" class="form-select rounded-3" id="billingCycleSelect" onchange="autoFillDuration()">
+                                <option value="Monthly" {% if package and package.billing_cycle == 'Monthly' %}selected{% endif %}>Monthly (30 Days)</option>
+                                <option value="Quarterly" {% if package and package.billing_cycle == 'Quarterly' %}selected{% endif %}>Quarterly (90 Days)</option>
+                                <option value="Yearly" {% if package and package.billing_cycle == 'Yearly' %}selected{% endif %}>Yearly (365 Days)</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold text-dark">Price (₹ INR) <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light">₹</span>
+                                <input type="number" step="0.01" min="0" name="price" class="form-control rounded-end-3" placeholder="49.99" value="{{ package.price if package else '29.00' }}" required>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold text-dark">Duration (Days) <span class="text-danger">*</span></label>
+                            <input type="number" name="duration_days" id="durationDaysInput" class="form-control rounded-3" placeholder="30" value="{{ package.duration_days if package else '30' }}" required>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label fw-semibold text-dark">Description</label>
+                            <textarea name="description" class="form-control rounded-3" rows="2" placeholder="Brief summary of who this plan is tailored for">{{ package.description if package else '' }}</textarea>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label fw-semibold text-dark">Features (Comma Separated)</label>
+                            <textarea name="features" class="form-control rounded-3" rows="3" placeholder="Patient Management, E-Prescriptions, Pharmacy Stock, Billing & Invoicing, Priority Support">{{ package.features if package else '' }}</textarea>
+                            <small class="text-muted">Separate distinct features with commas.</small>
+                        </div>
+
+                        <div class="col-12">
+                            <div class="form-check form-switch mt-2">
+                                <input class="form-check-input" type="checkbox" name="is_active" id="isActiveCheck" {% if not package or package.is_active %}checked{% endif %}>
+                                <label class="form-check-label fw-semibold text-dark" for="isActiveCheck">
+                                    Active & Available for Client Purchase
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 pt-3 border-top d-flex gap-2 justify-content-end">
+                        <a href="{{ url_for('superadmin_packages') }}" class="btn btn-light rounded-pill px-4 border">Cancel</a>
+                        <button type="submit" class="btn btn-warning rounded-pill px-4 text-dark fw-bold">
+                            <i class="fa-solid fa-floppy-disk me-1"></i> {{ 'Save Changes' if package else 'Create Package' }}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function autoFillDuration() {
+    const cycle = document.getElementById('billingCycleSelect').value;
+    const durationInput = document.getElementById('durationDaysInput');
+    if (cycle === 'Monthly') {
+        durationInput.value = 30;
+    } else if (cycle === 'Quarterly') {
+        durationInput.value = 90;
+    } else if (cycle === 'Yearly') {
+        durationInput.value = 365;
+    }
+}
+</script>
+{% endblock %}

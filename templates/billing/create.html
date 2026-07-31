@@ -1,0 +1,293 @@
+{% extends 'base.html' %}
+
+{% block title %}Create Medical Bill - HMS{% endblock %}
+{% block header_title %}Create Patient Invoice & Billing{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <div class="card-custom p-4">
+            <div class="d-flex align-items-center justify-content-between border-bottom pb-3 mb-4">
+                <div>
+                    <h5 class="fw-bold m-0 text-primary"><i class="fa-solid fa-file-invoice-dollar me-2"></i>Create Medical Invoice</h5>
+                    <small class="text-muted">Select patient, add items from stock or custom services, apply discounts & tax</small>
+                </div>
+                <a href="{{ url_for('billing_list') }}" class="btn btn-outline-secondary btn-sm rounded-pill">
+                    <i class="fa-solid fa-arrow-left me-1"></i> Back to Invoices
+                </a>
+            </div>
+
+            <form action="{{ url_for('billing_create') }}" method="POST">
+                {% if prescription %}
+                    <div class="alert alert-info d-flex align-items-center mb-4">
+                        <i class="fa-solid fa-circle-info fs-4 me-3"></i>
+                        <div>
+                            <strong>Converting E-Prescription: {{ prescription.prescription_no }}</strong><br>
+                            Items prescribed for <strong>{{ prescription.patient.name }}</strong> have been auto-loaded into line items.
+                            <input type="hidden" name="prescription_id" value="{{ prescription.id }}">
+                        </div>
+                    </div>
+                {% endif %}
+
+                <!-- Patient Selection & Details Header -->
+                <div class="row g-3 mb-4 bg-light p-3 rounded border">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold small text-muted">Select Registered Patient</label>
+                        <select name="patient_id" class="form-select" id="patient-select">
+                            <option value="">-- Walk-in / Custom Patient --</option>
+                            {% for p in patients %}
+                                <option value="{{ p.id }}" 
+                                    {% if (selected_patient and selected_patient.id == p.id) or (prescription and prescription.patient_id == p.id) %}selected{% endif %}
+                                    data-name="{{ p.name }}" data-phone="{{ p.phone }}">
+                                    {{ p.name }} (Code: {{ p.patient_code }} | Phone: {{ p.phone }})
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold small text-muted">Patient Name (For Invoice) *</label>
+                        <input type="text" name="patient_name" id="patient_name_input" class="form-control" placeholder="Patient Name" value="{% if selected_patient %}{{ selected_patient.name }}{% elif prescription %}{{ prescription.patient.name }}{% endif %}" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold small text-muted">Patient Phone Number</label>
+                        <input type="text" name="patient_phone" id="patient_phone_input" class="form-control" placeholder="Phone Number" value="{% if selected_patient %}{{ selected_patient.phone }}{% elif prescription %}{{ prescription.patient.phone }}{% endif %}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold small text-muted">Doctor Name</label>
+                        <input type="text" name="doctor_name" class="form-control" placeholder="e.g. Dr. Sarah Jenkins" value="{% if prescription %}{{ prescription.doctor_name }}{% else %}Dr. Sarah Jenkins{% endif %}">
+                    </div>
+                </div>
+
+                <!-- Line Items Section -->
+                <div class="mb-4">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <h6 class="fw-bold text-dark m-0"><i class="fa-solid fa-list-check text-primary me-2"></i>Invoice Line Items</h6>
+                        <button type="button" id="btn-add-billing-item" class="btn btn-sm btn-outline-primary rounded-pill">
+                            <i class="fa-solid fa-plus me-1"></i> Add Line Item
+                        </button>
+                    </div>
+
+                    <div id="billing-items-container">
+                        {% if initial_items %}
+                            {% for init in initial_items %}
+                                <div class="row g-2 align-items-center mb-2 billing-item-row p-2 rounded bg-light border">
+                                    <div class="col-md-4">
+                                        <select class="form-select form-select-sm stock-select">
+                                            <option value="">-- Custom Charge / Medicine --</option>
+                                            {% for s in stock_items %}
+                                                <option value="{{ s.id }}" data-name="{{ s.item_name }}" data-price="{{ s.selling_price }}" {% if init.stock_id == s.id %}selected{% endif %}>
+                                                    {{ s.item_name }} (₹{{ "%.2f"|format(s.selling_price) }} | Stock: {{ s.quantity }})
+                                                </option>
+                                            {% endfor %}
+                                        </select>
+                                        <input type="hidden" name="stock_id[]" value="{{ init.stock_id or '' }}">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <input type="text" name="item_name[]" class="form-control form-control-sm item-name" placeholder="Item / Service Name" value="{{ init.name }}" required>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <select name="item_type[]" class="form-select form-select-sm">
+                                            <option value="Medicine">Medicine</option>
+                                            <option value="Consultation">Consultation</option>
+                                            <option value="Lab Test">Lab Test</option>
+                                            <option value="Nursing">Nursing</option>
+                                            <option value="Procedure">Procedure</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-1">
+                                        <input type="number" step="0.01" name="unit_price[]" class="form-control form-control-sm item-price" placeholder="Price" value="{{ init.price }}" required>
+                                    </div>
+                                    <div class="col-md-1">
+                                        <input type="number" name="quantity[]" class="form-control form-control-sm item-qty" placeholder="Qty" value="{{ init.qty }}" min="1" required>
+                                    </div>
+                                    <div class="col-md-1 d-none">
+                                        <input type="text" class="form-control form-control-sm item-total" readonly>
+                                    </div>
+                                    <div class="col-md-1 text-end">
+                                        <button type="button" class="btn btn-sm btn-outline-danger btn-remove-row py-1 px-2">
+                                            <i class="fa-solid fa-xmark"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <!-- Default Row 1 -->
+                            <div class="row g-2 align-items-center mb-2 billing-item-row p-2 rounded bg-light border">
+                                <div class="col-md-4">
+                                    <select class="form-select form-select-sm stock-select">
+                                        <option value="">-- Pick Stock Medicine or Custom --</option>
+                                        {% for s in stock_items %}
+                                            <option value="{{ s.id }}" data-name="{{ s.item_name }}" data-price="{{ s.selling_price }}">
+                                                {{ s.item_name }} (₹{{ "%.2f"|format(s.selling_price) }} | Stock: {{ s.quantity }})
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                    <input type="hidden" name="stock_id[]">
+                                </div>
+                                <div class="col-md-3">
+                                    <input type="text" name="item_name[]" class="form-control form-control-sm item-name" placeholder="Item / Service Description" required>
+                                </div>
+                                <div class="col-md-2">
+                                    <select name="item_type[]" class="form-select form-select-sm">
+                                        <option value="Medicine">Medicine</option>
+                                        <option value="Consultation">Consultation</option>
+                                        <option value="Lab Test">Lab Test</option>
+                                        <option value="Nursing">Nursing</option>
+                                        <option value="Procedure">Procedure</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-1">
+                                    <input type="number" step="0.01" name="unit_price[]" class="form-control form-control-sm item-price" placeholder="Price" value="0.00" required>
+                                </div>
+                                <div class="col-md-1">
+                                    <input type="number" name="quantity[]" class="form-control form-control-sm item-qty" placeholder="Qty" value="1" min="1" required>
+                                </div>
+                                <div class="col-md-1 d-none">
+                                    <input type="text" class="form-control form-control-sm item-total" readonly>
+                                </div>
+                                <div class="col-md-1 text-end">
+                                    <button type="button" class="btn btn-sm btn-outline-danger btn-remove-row py-1 px-2">
+                                        <i class="fa-solid fa-xmark"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Financial Calculation & Payment Bar -->
+                <div class="row bg-light p-3 rounded border mb-4">
+                    <div class="col-md-6 border-end">
+                        <div class="row g-2 mb-2">
+                            <div class="col-md-6">
+                                <label class="form-label small text-muted">Discount %</label>
+                                <input type="number" step="0.1" name="discount_percent" id="discount_percent" class="form-control form-control-sm" value="0.0">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small text-muted">Tax / VAT %</label>
+                                <input type="number" step="0.1" name="tax_percent" id="tax_percent" class="form-control form-control-sm" value="5.0">
+                            </div>
+                        </div>
+
+                        <div class="row g-2">
+                            <div class="col-md-6">
+                                <label class="form-label small text-muted">Payment Status *</label>
+                                <select name="payment_status" class="form-select form-select-sm" required>
+                                    <option value="Paid">Paid</option>
+                                    <option value="Partial">Partial</option>
+                                    <option value="Unpaid">Unpaid</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small text-muted">Payment Method *</label>
+                                <select name="payment_method" class="form-select form-select-sm" required>
+                                    <option value="Cash">Cash</option>
+                                    <option value="Card">Credit/Debit Card</option>
+                                    <option value="UPI">UPI / Digital Wallet</option>
+                                    <option value="NetBanking">NetBanking</option>
+                                    <option value="Insurance">Health Insurance</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Live Total Summary Display -->
+                    <div class="col-md-6 ps-md-4 d-flex flex-column justify-content-center">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-muted">Subtotal:</span>
+                            <span class="fw-semibold" id="subtotal-val">₹0.00</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2 border-bottom pb-2">
+                            <span class="text-muted">Calculated Tax & Discount:</span>
+                            <small class="text-muted">Auto-calculated</small>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <h5 class="fw-bold text-dark m-0">Grand Total:</h5>
+                            <h4 class="fw-bold text-primary m-0" id="total-amount-val">₹0.00</h4>
+                        </div>
+
+                        <!-- Hidden fields for backend calculations -->
+                        <input type="hidden" name="subtotal" id="input_subtotal">
+                        <input type="hidden" name="discount_amount" id="input_discount_amount">
+                        <input type="hidden" name="tax_amount" id="input_tax_amount">
+                        <input type="hidden" name="total_amount" id="input_total_amount">
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label fw-semibold small text-muted">Invoice Notes / Payment Remarks</label>
+                    <input type="text" name="notes" class="form-control" placeholder="e.g. Paid in cash at reception counter...">
+                </div>
+
+                <div class="d-flex justify-content-end gap-2 border-top pt-3">
+                    <a href="{{ url_for('billing_list') }}" class="btn btn-light border px-4">Cancel</a>
+                    <button type="submit" class="btn btn-primary px-4 rounded-pill shadow-sm">
+                        <i class="fa-solid fa-floppy-disk me-1"></i> Save Invoice & Complete Bill
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Template for JavaScript Billing Row Cloner -->
+<template id="billing-item-template">
+    <div class="row g-2 align-items-center mb-2 billing-item-row p-2 rounded bg-light border">
+        <div class="col-md-4">
+            <select class="form-select form-select-sm stock-select">
+                <option value="">-- Pick Stock Medicine or Custom --</option>
+                {% for s in stock_items %}
+                    <option value="{{ s.id }}" data-name="{{ s.item_name }}" data-price="{{ s.selling_price }}">
+                        {{ s.item_name }} (₹{{ "%.2f"|format(s.selling_price) }} | Stock: {{ s.quantity }})
+                    </option>
+                {% endfor %}
+            </select>
+            <input type="hidden" name="stock_id[]">
+        </div>
+        <div class="col-md-3">
+            <input type="text" name="item_name[]" class="form-control form-control-sm item-name" placeholder="Item / Service Description" required>
+        </div>
+        <div class="col-md-2">
+            <select name="item_type[]" class="form-select form-select-sm">
+                <option value="Medicine">Medicine</option>
+                <option value="Consultation">Consultation</option>
+                <option value="Lab Test">Lab Test</option>
+                <option value="Nursing">Nursing</option>
+                <option value="Procedure">Procedure</option>
+            </select>
+        </div>
+        <div class="col-md-1">
+            <input type="number" step="0.01" name="unit_price[]" class="form-control form-control-sm item-price" placeholder="Price" value="0.00" required>
+        </div>
+        <div class="col-md-1">
+            <input type="number" name="quantity[]" class="form-control form-control-sm item-qty" placeholder="Qty" value="1" min="1" required>
+        </div>
+        <div class="col-md-1 d-none">
+            <input type="text" class="form-control form-control-sm item-total" readonly>
+        </div>
+        <div class="col-md-1 text-end">
+            <button type="button" class="btn btn-sm btn-outline-danger btn-remove-row py-1 px-2">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+    </div>
+</template>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const patientSelect = document.getElementById('patient-select');
+        const nameInput = document.getElementById('patient_name_input');
+        const phoneInput = document.getElementById('patient_phone_input');
+
+        if (patientSelect && nameInput) {
+            patientSelect.addEventListener('change', function() {
+                const opt = patientSelect.options[patientSelect.selectedIndex];
+                if (opt.value) {
+                    nameInput.value = opt.getAttribute('data-name') || '';
+                    if (phoneInput) phoneInput.value = opt.getAttribute('data-phone') || '';
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

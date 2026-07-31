@@ -1,0 +1,118 @@
+{% extends 'base.html' %}
+
+{% block title %}Patient Directory - HMS{% endblock %}
+{% block header_title %}Patient Management Directory{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h5 class="fw-bold m-0">Patient Directory</h5>
+        <small class="text-muted">Search, register, and manage patient profiles</small>
+    </div>
+    <a href="{{ url_for('patients_create') }}" class="btn btn-primary rounded-pill px-3 shadow-sm">
+        <i class="fa-solid fa-user-plus me-1"></i> Register New Patient
+    </a>
+</div>
+
+<!-- Search & Filter Card -->
+<div class="card-custom p-3 mb-4">
+    <form action="{{ url_for('patients_list') }}" method="GET" class="row g-2">
+        <div class="col-md-9">
+            <div class="input-group">
+                <span class="input-group-text bg-white border-end-0"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
+                <input type="text" name="search" class="form-control border-start-0" placeholder="Search patient by Name, Phone, or Code (e.g. PAT-1001)..." value="{{ search_query }}">
+            </div>
+        </div>
+        <div class="col-md-3 d-flex gap-2">
+            <button type="submit" class="btn btn-secondary w-100 rounded">Filter</button>
+            {% if search_query %}
+                <a href="{{ url_for('patients_list') }}" class="btn btn-outline-light border text-dark">Reset</a>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+<!-- Patient List Table -->
+<div class="card-custom p-3">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle table-custom">
+            <thead>
+                <tr>
+                    <th>Patient Code</th>
+                    <th>Full Name</th>
+                    <th>Age / Gender</th>
+                    <th>Blood Group</th>
+                    <th>Phone</th>
+                    <th>Latest Vitals</th>
+                    <th>Registered Date</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in patients %}
+                    <tr>
+                        <td><span class="badge bg-primary-subtle text-primary border border-primary-subtle fw-bold">{{ p.patient_code }}</span></td>
+                        <td>
+                            <a href="{{ url_for('patients_view', patient_id=p.id) }}" class="fw-bold text-dark text-decoration-none hover-primary">
+                                {{ p.name }}
+                            </a>
+                            {% if p.medical_history %}
+                                <i class="fa-solid fa-notes-medical text-warning ms-1" title="Has recorded medical history"></i>
+                            {% endif %}
+                        </td>
+                        <td>{{ p.age }} Yrs / <span class="text-capitalize">{{ p.gender }}</span></td>
+                        <td><span class="badge bg-light text-dark border">{{ p.blood_group or 'N/A' }}</span></td>
+                        <td><i class="fa-solid fa-phone text-muted me-1 small"></i> {{ p.phone }}</td>
+                        <td>
+                            {% if p.vitals_records %}
+                                {% set latest = (p.vitals_records|sort(attribute='recorded_at', reverse=True))[0] %}
+                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle fs-8">
+                                    <i class="fa-solid fa-heart-pulse me-1"></i>
+                                    {% if latest.bp %}BP: {{ latest.bp }}{% endif %}
+                                    {% if latest.pulse %} \| Pulse: {{ latest.pulse }}{% endif %}
+                                    {% if latest.temp %} \| Temp: {{ latest.temp }}{% endif %}
+                                    {% if latest.weight %} \| Wt: {{ latest.weight }}{% endif %}
+                                </span>
+                            {% else %}
+                                <span class="text-muted fs-8">No vitals checked</span>
+                            {% endif %}
+                        </td>
+                        <td class="small text-muted">{{ p.created_at.strftime('%Y-%m-%d') }}</td>
+                        <td class="text-end">
+                            <div class="btn-group btn-group-sm">
+                                <a href="{{ url_for('patients_view', patient_id=p.id) }}" class="btn btn-light border" title="View Details">
+                                    <i class="fa-solid fa-eye text-primary"></i>
+                                </a>
+                                <a href="{{ url_for('patients_vitals', patient_id=p.id) }}" class="btn btn-light border text-danger" title="Record Nurse Vitals Check">
+                                    <i class="fa-solid fa-heart-pulse"></i>
+                                </a>
+                                <a href="{{ url_for('prescription_create', patient_id=p.id) }}" class="btn btn-light border text-success" title="Create Prescription">
+                                    <i class="fa-solid fa-file-prescription"></i>
+                                </a>
+                                <a href="{{ url_for('billing_create', patient_id=p.id) }}" class="btn btn-light border text-info" title="Create Invoice">
+                                    <i class="fa-solid fa-receipt"></i>
+                                </a>
+                                <a href="{{ url_for('patients_edit', patient_id=p.id) }}" class="btn btn-light border" title="Edit Patient">
+                                    <i class="fa-solid fa-pen text-secondary"></i>
+                                </a>
+                                <form action="{{ url_for('patients_delete', patient_id=p.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this patient record?');">
+                                    <button type="submit" class="btn btn-light border text-danger" title="Delete">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="8" class="text-center text-muted py-4">
+                            <i class="fa-solid fa-user-slash fs-2 mb-2 text-secondary"></i><br>
+                            No patient records found matching criteria.
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

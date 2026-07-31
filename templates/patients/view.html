@@ -1,0 +1,202 @@
+{% extends 'base.html' %}
+
+{% block title %}Patient Profile - {{ patient.name }}{% endblock %}
+{% block header_title %}Patient File: {{ patient.patient_code }}{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <!-- Patient Profile Summary Side Panel -->
+    <div class="col-lg-4">
+        <div class="card-custom p-4 mb-4">
+            <div class="text-center mb-3">
+                <div class="d-inline-flex align-items-center justify-content-center bg-primary text-white rounded-circle mb-3 shadow-sm" style="width:72px; height:72px; font-size:2.2rem;">
+                    <i class="fa-solid fa-user-injured"></i>
+                </div>
+                <h5 class="fw-bold mb-1">{{ patient.name }}</h5>
+                <span class="badge bg-primary fs-7 px-3 py-1">{{ patient.patient_code }}</span>
+            </div>
+
+            <div class="border-top pt-3">
+                <div class="row g-2 text-sm">
+                    <div class="col-6"><strong class="text-muted">Age / Gender:</strong></div>
+                    <div class="col-6 text-end">{{ patient.age }} yrs / {{ patient.gender }}</div>
+
+                    <div class="col-6"><strong class="text-muted">Blood Group:</strong></div>
+                    <div class="col-6 text-end"><span class="badge bg-danger">{{ patient.blood_group or 'N/A' }}</span></div>
+
+                    <div class="col-6"><strong class="text-muted">Phone:</strong></div>
+                    <div class="col-6 text-end">{{ patient.phone }}</div>
+
+                    <div class="col-6"><strong class="text-muted">Email:</strong></div>
+                    <div class="col-6 text-end text-truncate">{{ patient.email or 'N/A' }}</div>
+
+                    <div class="col-6"><strong class="text-muted">Registered:</strong></div>
+                    <div class="col-6 text-end">{{ patient.created_at.strftime('%Y-%m-%d') }}</div>
+                </div>
+            </div>
+
+            {% if patient.medical_history %}
+                <div class="border-top mt-3 pt-3">
+                    <h6 class="fw-bold text-danger small"><i class="fa-solid fa-triangle-exclamation me-1"></i> Medical History / Allergies:</h6>
+                    <p class="small text-muted bg-light p-2 rounded border mb-0">{{ patient.medical_history }}</p>
+                </div>
+            {% endif %}
+
+            <div class="d-grid gap-2 mt-4">
+                <a href="{{ url_for('prescription_create', patient_id=patient.id) }}" class="btn btn-outline-success">
+                    <i class="fa-solid fa-file-prescription me-1"></i> Issue E-Prescription
+                </a>
+                <a href="{{ url_for('billing_create', patient_id=patient.id) }}" class="btn btn-outline-primary">
+                    <i class="fa-solid fa-receipt me-1"></i> Create Medical Bill
+                </a>
+                <a href="{{ url_for('patients_edit', patient_id=patient.id) }}" class="btn btn-light border">
+                    <i class="fa-solid fa-pen me-1"></i> Edit Profile Information
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Patient Clinical History & Invoices -->
+    <div class="col-lg-8">
+        <!-- Nurse Vitals Check History Card -->
+        <div class="card-custom p-4 mb-4">
+            <div class="d-flex align-items-center justify-content-between border-bottom pb-3 mb-3">
+                <h6 class="fw-bold m-0 text-danger"><i class="fa-solid fa-heart-pulse me-2"></i>Nurse Vitals Check History</h6>
+                <a href="{{ url_for('patients_vitals', patient_id=patient.id) }}" class="btn btn-sm btn-danger rounded-pill px-3 shadow-sm">
+                    <i class="fa-solid fa-plus me-1"></i> Record Vitals
+                </a>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle table-custom">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Recorded Date</th>
+                            <th>BP</th>
+                            <th>Pulse</th>
+                            <th>Temp</th>
+                            <th>Weight</th>
+                            <th>SpO2</th>
+                            <th>Nurse</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for v in patient.vitals_records|sort(attribute='recorded_at', reverse=True) %}
+                            <tr>
+                                <td class="small fw-semibold text-dark">{{ v.recorded_at.strftime('%b %d, %Y %I:%M %p') }}</td>
+                                <td><span class="badge bg-danger-subtle text-danger border border-danger-subtle">{{ v.bp or 'N/A' }}</span></td>
+                                <td><span class="badge bg-warning-subtle text-warning-emphasis border">{{ v.pulse or 'N/A' }}</span></td>
+                                <td>{{ v.temp or 'N/A' }}</td>
+                                <td>{{ v.weight or 'N/A' }}</td>
+                                <td>{{ v.spo2 or 'N/A' }}</td>
+                                <td class="small text-muted"><i class="fa-solid fa-user-nurse me-1 text-danger"></i>{{ v.nurse_name or 'Nurse' }}</td>
+                                <td class="small text-muted">{{ v.notes or '-' }}</td>
+                            </tr>
+                        {% else %}
+                            <tr><td colspan="8" class="text-center text-muted py-3">No nurse vitals recorded for this patient yet.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Prescriptions Card -->
+        <div class="card-custom p-4 mb-4">
+            <div class="d-flex align-items-center justify-content-between border-bottom pb-3 mb-3">
+                <h6 class="fw-bold m-0 text-dark"><i class="fa-solid fa-file-prescription text-success me-2"></i>E-Prescriptions History</h6>
+                <a href="{{ url_for('prescription_create', patient_id=patient.id) }}" class="btn btn-sm btn-success rounded-pill px-3">
+                    <i class="fa-solid fa-plus me-1"></i> New Rx
+                </a>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle table-custom">
+                    <thead>
+                        <tr>
+                            <th>Rx #</th>
+                            <th>Doctor</th>
+                            <th>Diagnosis</th>
+                            <th>Vitals</th>
+                            <th>Date</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for rx in patient.prescriptions %}
+                            <tr>
+                                <td><span class="badge bg-light text-dark border">{{ rx.prescription_no }}</span></td>
+                                <td>{{ rx.doctor_name }}</td>
+                                <td class="small">{{ rx.diagnosis or 'General Consultation' }}</td>
+                                <td class="small text-muted">
+                                    {% if rx.vitals_bp %}BP: {{ rx.vitals_bp }}{% endif %}
+                                    {% if rx.vitals_temp %} | {{ rx.vitals_temp }}{% endif %}
+                                </td>
+                                <td class="small text-muted">{{ rx.created_at.strftime('%Y-%m-%d') }}</td>
+                                <td>
+                                    <a href="{{ url_for('prescriptions_print', rx_id=rx.id) }}" class="btn btn-sm btn-light border py-1 px-2" title="Print Prescription">
+                                        <i class="fa-solid fa-print text-primary"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                        {% else %}
+                            <tr><td colspan="6" class="text-center text-muted py-3">No prescriptions on record yet.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Invoices Card -->
+        <div class="card-custom p-4">
+            <div class="d-flex align-items-center justify-content-between border-bottom pb-3 mb-3">
+                <h6 class="fw-bold m-0 text-dark"><i class="fa-solid fa-receipt text-primary me-2"></i>Billing & Payment Records</h6>
+                <a href="{{ url_for('billing_create', patient_id=patient.id) }}" class="btn btn-sm btn-primary rounded-pill px-3">
+                    <i class="fa-solid fa-plus me-1"></i> New Bill
+                </a>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle table-custom">
+                    <thead>
+                        <tr>
+                            <th>Invoice #</th>
+                            <th>Doctor</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th>Date</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for b in patient.bills %}
+                            <tr>
+                                <td><span class="badge bg-light text-dark border">{{ b.bill_no }}</span></td>
+                                <td>{{ b.doctor_name or 'N/A' }}</td>
+                                <td class="fw-bold">₹{{ "%.2f"|format(b.total_amount) }}</td>
+                                <td>
+                                    {% if b.payment_status == 'Paid' %}
+                                        <span class="badge bg-success">Paid</span>
+                                    {% elif b.payment_status == 'Partial' %}
+                                        <span class="badge bg-warning text-dark">Partial</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">Unpaid</span>
+                                    {% endif %}
+                                </td>
+                                <td class="small text-muted">{{ b.created_at.strftime('%Y-%m-%d') }}</td>
+                                <td>
+                                    <a href="{{ url_for('billing_print', bill_id=b.id) }}" class="btn btn-sm btn-light border py-1 px-2" title="Print Invoice">
+                                        <i class="fa-solid fa-print text-secondary"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                        {% else %}
+                            <tr><td colspan="6" class="text-center text-muted py-3">No billing records on file.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

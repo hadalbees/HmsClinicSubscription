@@ -1,0 +1,116 @@
+{% extends 'base.html' %}
+
+{% block title %}Purchase Bill - {{ purchase.purchase_no }}{% endblock %}
+{% block header_title %}Print Supplier Purchase Bill{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-9">
+        <div class="d-flex align-items-center justify-content-between mb-3 no-print">
+            <a href="{{ url_for('purchases_list') }}" class="btn btn-outline-secondary btn-sm rounded-pill">
+                <i class="fa-solid fa-arrow-left me-1"></i> Back to Purchases List
+            </a>
+            <button onclick="window.print()" class="btn btn-dark btn-sm rounded-pill">
+                <i class="fa-solid fa-print me-1"></i> Print Receipt
+            </button>
+        </div>
+
+        <div class="card-custom p-5 printable-document bg-white">
+            <div class="d-flex align-items-center justify-content-between border-bottom pb-4 mb-4">
+                <div>
+                    <h3 class="fw-bold text-primary m-0"><i class="fa-solid fa-hospital me-2"></i>HMS CLINIC & CARE</h3>
+                    <p class="text-muted small m-0">123 Health Avenue, Medical District, Cityville</p>
+                    <p class="text-muted small m-0">Pharmacy Stock Inward Register</p>
+                </div>
+                <div class="text-end">
+                    <h4 class="fw-bold text-dark m-0">SUPPLIER PURCHASE BILL</h4>
+                    <div class="fw-bold text-primary fs-5 mt-1">{{ purchase.purchase_no }}</div>
+                    <small class="text-muted">Date: {{ purchase.purchase_date.strftime('%B %d, %Y') if purchase.purchase_date else purchase.created_at.strftime('%B %d, %Y') }}</small>
+                </div>
+            </div>
+
+            <div class="row g-3 mb-4 p-3 rounded bg-light border">
+                <div class="col-md-6 border-end">
+                    <h6 class="fw-bold text-muted small text-uppercase mb-1">Supplier Details</h6>
+                    <h5 class="fw-bold text-dark mb-1">{{ purchase.supplier_name }}</h5>
+                    <div class="small text-muted"><strong>Supplier Invoice #:</strong> {{ purchase.supplier_invoice_no or 'N/A' }}</div>
+                </div>
+                <div class="col-md-6 ps-md-4">
+                    <h6 class="fw-bold text-muted small text-uppercase mb-1">Payment Information</h6>
+                    <div class="small text-muted"><strong>Payment Method:</strong> {{ purchase.payment_method }}</div>
+                    <div class="small text-muted">
+                        <strong>Payment Status:</strong> 
+                        {% if purchase.payment_status == 'Paid' %}
+                            <span class="badge bg-success">PAID IN FULL</span>
+                        {% elif purchase.payment_status == 'Partial' %}
+                            <span class="badge bg-warning text-dark">PARTIAL PAYMENT</span>
+                        {% else %}
+                            <span class="badge bg-danger">UNPAID</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="table-responsive mb-4">
+                <table class="table table-bordered align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>#</th>
+                            <th>Medicine / Item Name</th>
+                            <th>Category</th>
+                            <th>Batch #</th>
+                            <th>Cost / Unit</th>
+                            <th>Units (Qty)</th>
+                            <th class="text-end">Total Cost</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in purchase.items %}
+                            <tr>
+                                <td>{{ loop.index }}</td>
+                                <td class="fw-bold text-dark">{{ item.item_name }}</td>
+                                <td><span class="badge bg-light text-dark border">{{ item.category }}</span></td>
+                                <td class="small text-muted">{{ item.batch_number or 'N/A' }}</td>
+                                <td>₹{{ "%.2f"|format(item.cost_price) }}</td>
+                                <td>{{ item.quantity }}</td>
+                                <td class="text-end fw-semibold">₹{{ "%.2f"|format(item.total_cost) }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="row">
+                <div class="col-6">
+                    {% if purchase.notes %}
+                        <div class="p-3 bg-light rounded border">
+                            <h6 class="fw-bold small text-muted text-uppercase mb-1">Purchase Remarks</h6>
+                            <p class="small text-dark mb-0">{{ purchase.notes }}</p>
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="col-6 text-end ms-auto">
+                    <div class="d-flex justify-content-between py-2 border-bottom">
+                        <h5 class="fw-bold text-dark m-0">Total Purchase Amount:</h5>
+                        <h4 class="fw-bold text-danger m-0">₹{{ "%.2f"|format(purchase.total_amount) }}</h4>
+                    </div>
+                    <div class="d-flex justify-content-between py-1 text-muted">
+                        <span>Paid Amount:</span>
+                        <span>₹{{ "%.2f"|format(purchase.paid_amount) }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row pt-5 mt-5 border-top">
+                <div class="col-6">
+                    <small class="text-muted">Stock received and verified into inventory database.</small>
+                </div>
+                <div class="col-6 text-end">
+                    <div class="border-bottom d-inline-block px-5 pb-4 mb-1"></div>
+                    <div><strong class="text-dark">Pharmacist / Receiver Signature</strong></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

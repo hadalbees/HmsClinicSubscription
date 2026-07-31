@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+
+{% block title %}Record Vitals - {{ patient.name }}{% endblock %}
+{% block header_title %}Nurse Vitals Check: {{ patient.name }} ({{ patient.patient_code }}){% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card-custom p-4">
+            <div class="d-flex align-items-center justify-content-between border-bottom pb-3 mb-4">
+                <div>
+                    <h5 class="fw-bold m-0 text-danger"><i class="fa-solid fa-heart-pulse me-2"></i>Nurse Patient Vitals Check</h5>
+                    <small class="text-muted">Record today's physical vitals for patient <strong>{{ patient.name }}</strong></small>
+                </div>
+                <a href="{{ url_for('patients_list') }}" class="btn btn-outline-secondary btn-sm rounded-pill">
+                    <i class="fa-solid fa-arrow-left me-1"></i> Back to Patients
+                </a>
+            </div>
+
+            <!-- Patient Quick Info Banner -->
+            <div class="row g-2 bg-light p-3 rounded border mb-4">
+                <div class="col-md-3"><strong>Patient Code:</strong> <span class="badge bg-primary fs-7">{{ patient.patient_code }}</span></div>
+                <div class="col-md-3"><strong>Age/Gender:</strong> {{ patient.age }}Y / {{ patient.gender }}</div>
+                <div class="col-md-3"><strong>Blood Group:</strong> <span class="badge bg-danger">{{ patient.blood_group or 'N/A' }}</span></div>
+                <div class="col-md-3"><strong>Phone:</strong> {{ patient.phone }}</div>
+            </div>
+
+            <form action="{{ url_for('patients_vitals', patient_id=patient.id) }}" method="POST">
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold small text-muted">Blood Pressure (BP)</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light"><i class="fa-solid fa-gauge-high text-danger"></i></span>
+                            <input type="text" name="bp" class="form-control" placeholder="e.g. 120/80 mmHg" value="{{ latest_vitals.bp if latest_vitals else '' }}">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold small text-muted">Pulse Rate</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light"><i class="fa-solid fa-heart-pulse text-danger"></i></span>
+                            <input type="text" name="pulse" class="form-control" placeholder="e.g. 72 bpm" value="{{ latest_vitals.pulse if latest_vitals else '' }}">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold small text-muted">Body Temp (°F / °C)</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light"><i class="fa-solid fa-temperature-three-quarters text-warning"></i></span>
+                            <input type="text" name="temp" class="form-control" placeholder="e.g. 98.6 °F" value="{{ latest_vitals.temp if latest_vitals else '' }}">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold small text-muted">Body Weight (kg)</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light"><i class="fa-solid fa-weight-scale text-primary"></i></span>
+                            <input type="text" name="weight" class="form-control" placeholder="e.g. 68 kg" value="{{ latest_vitals.weight if latest_vitals else '' }}">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold small text-muted">Oxygen Saturation (SpO2 %)</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light"><i class="fa-solid fa-lungs text-info"></i></span>
+                            <input type="text" name="spo2" class="form-control" placeholder="e.g. 98%" value="{{ latest_vitals.spo2 if latest_vitals else '' }}">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold small text-muted">Attending Nurse Name *</label>
+                        <input type="text" name="nurse_name" class="form-control" placeholder="e.g. Nurse Clara" value="Nurse Clara" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold small text-muted">Chief Complaints / Observation Notes</label>
+                        <input type="text" name="notes" class="form-control" placeholder="e.g. Patient complains of fever & headache since yesterday" value="{{ latest_vitals.notes if latest_vitals else '' }}">
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2 border-top pt-3">
+                    <a href="{{ url_for('patients_list') }}" class="btn btn-light border px-4">Cancel</a>
+                    <button type="submit" class="btn btn-danger px-4 rounded-pill shadow-sm">
+                        <i class="fa-solid fa-floppy-disk me-1"></i> Save Vitals Check
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

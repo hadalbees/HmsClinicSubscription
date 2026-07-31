@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+
+{% block title %}Supplier Purchase Bills - HMS{% endblock %}
+{% block header_title %}Supplier Purchases & Stock Inward Bills{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h5 class="fw-bold m-0">Supplier Purchase Directory</h5>
+        <small class="text-muted">Record supplier invoices, restock medicines, and sync financial expenses</small>
+    </div>
+    <a href="{{ url_for('purchases_create') }}" class="btn btn-primary rounded-pill px-3 shadow-sm">
+        <i class="fa-solid fa-cart-flatbed me-1"></i> New Supplier Purchase Bill
+    </a>
+</div>
+
+<!-- Search & Filters -->
+<div class="card-custom p-3 mb-4">
+    <form action="{{ url_for('purchases_list') }}" method="GET" class="row g-2">
+        <div class="col-md-6">
+            <div class="input-group">
+                <span class="input-group-text bg-white border-end-0"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
+                <input type="text" name="search" class="form-control border-start-0" placeholder="Search Purchase #, Supplier Name, or Supplier Invoice #..." value="{{ search_query }}">
+            </div>
+        </div>
+        <div class="col-md-4">
+            <select name="status" class="form-select">
+                <option value="">All Payment Statuses</option>
+                <option value="Paid" {% if selected_status == 'Paid' %}selected{% endif %}>Paid</option>
+                <option value="Partial" {% if selected_status == 'Partial' %}selected{% endif %}>Partial</option>
+                <option value="Unpaid" {% if selected_status == 'Unpaid' %}selected{% endif %}>Unpaid</option>
+            </select>
+        </div>
+        <div class="col-md-2 d-flex gap-2">
+            <button type="submit" class="btn btn-secondary w-100">Filter</button>
+            {% if search_query or selected_status %}
+                <a href="{{ url_for('purchases_list') }}" class="btn btn-outline-light border text-dark">Reset</a>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+<!-- Purchases Table -->
+<div class="card-custom p-3">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle table-custom">
+            <thead>
+                <tr>
+                    <th>Purchase #</th>
+                    <th>Supplier Name</th>
+                    <th>Supplier Invoice #</th>
+                    <th>Total Cost</th>
+                    <th>Paid Amount</th>
+                    <th>Status</th>
+                    <th>Method</th>
+                    <th>Date</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in purchases %}
+                    <tr>
+                        <td><span class="badge bg-primary-subtle text-primary border border-primary-subtle fw-bold">{{ p.purchase_no }}</span></td>
+                        <td><div class="fw-semibold text-dark">{{ p.supplier_name }}</div></td>
+                        <td><span class="small text-muted">{{ p.supplier_invoice_no or 'N/A' }}</span></td>
+                        <td class="fw-bold text-danger">₹{{ "%.2f"|format(p.total_amount) }}</td>
+                        <td class="text-muted">₹{{ "%.2f"|format(p.paid_amount) }}</td>
+                        <td>
+                            {% if p.payment_status == 'Paid' %}
+                                <span class="badge bg-success">Paid</span>
+                            {% elif p.payment_status == 'Partial' %}
+                                <span class="badge bg-warning text-dark">Partial</span>
+                            {% else %}
+                                <span class="badge bg-danger">Unpaid</span>
+                            {% endif %}
+                        </td>
+                        <td><span class="badge bg-light text-dark border">{{ p.payment_method }}</span></td>
+                        <td class="small text-muted">{{ p.purchase_date.strftime('%Y-%m-%d') if p.purchase_date else p.created_at.strftime('%Y-%m-%d') }}</td>
+                        <td class="text-end">
+                            <div class="btn-group btn-group-sm">
+                                <a href="{{ url_for('purchases_print', purchase_id=p.id) }}" class="btn btn-light border" title="View / Print Purchase Bill">
+                                    <i class="fa-solid fa-eye text-primary"></i>
+                                </a>
+                                <form action="{{ url_for('purchases_delete', purchase_id=p.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Delete this supplier purchase record?');">
+                                    <button type="submit" class="btn btn-light border text-danger" title="Delete Purchase">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="9" class="text-center text-muted py-4">
+                            <i class="fa-solid fa-cart-flatbed fs-2 mb-2 text-secondary"></i><br>
+                            No supplier purchase bills recorded yet.
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

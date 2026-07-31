@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+
+{% block title %}My Clinic Subscription - HMS Clinic{% endblock %}
+
+{% block header_title %}My Subscription Plan{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h3 class="fw-bold m-0 text-dark">Subscription Plan Status</h3>
+        <p class="text-muted small m-0">View your active package, renewal dates, and subscription history</p>
+    </div>
+    <a href="{{ url_for('plans_list') }}" class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm fw-semibold">
+        <i class="fa-solid fa-layer-group me-1"></i> Browse / Upgrade Plans
+    </a>
+</div>
+
+<!-- Active Subscription Status Banner Card -->
+<div class="row g-4 mb-4">
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm rounded-4 position-relative overflow-hidden">
+            {% if active_sub %}
+            <div class="card-body p-4 text-white rounded-4 shadow-sm" style="background: linear-gradient(135deg, #0f766e 0%, #0d9488 50%, #10b981 100%) !important;">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <span class="badge bg-white bg-opacity-25 text-white rounded-pill px-3 py-1 mb-2 fs-8">
+                            <i class="fa-solid fa-circle-check me-1"></i> ACTIVE SUBSCRIPTION
+                        </span>
+                        <h2 class="fw-extrabold m-0 text-white">{{ active_sub.package.name if active_sub.package else 'Active Subscription' }}</h2>
+                        <p class="text-white-50 mt-1 mb-0"><i class="fa-solid fa-hospital me-1"></i> {{ active_sub.clinic_name }}</p>
+                    </div>
+                    <div class="text-end">
+                        <span class="badge bg-white text-dark rounded-pill px-3 py-1 fw-bold fs-7">{{ active_sub.billing_cycle }} Plan</span>
+                    </div>
+                </div>
+
+                <div class="row g-3 mt-4 pt-3 border-top border-white border-opacity-25 text-white">
+                    <div class="col-md-4">
+                        <span class="fs-8 text-white-50 text-uppercase fw-semibold">Start Date</span>
+                        <div class="fw-bold fs-6">{{ active_sub.start_date.strftime('%B %d, %Y') if active_sub.start_date else 'N/A' }}</div>
+                    </div>
+                    <div class="col-md-4">
+                        <span class="fs-8 text-white-50 text-uppercase fw-semibold">Expiry Date</span>
+                        <div class="fw-bold fs-6">{{ active_sub.end_date.strftime('%B %d, %Y') if active_sub.end_date else 'N/A' }}</div>
+                    </div>
+                    <div class="col-md-4 text-md-end">
+                        <span class="fs-8 text-white-50 text-uppercase fw-semibold">Package Price</span>
+                        <div class="fw-extrabold fs-5">₹{{ "%.2f"|format(active_sub.package.price) if active_sub.package else '0.00' }}</div>
+                    </div>
+                </div>
+            </div>
+            {% elif latest_sub and latest_sub.status == 'Pending' %}
+            <div class="card-body p-4 text-dark" style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="bg-warning bg-opacity-25 rounded-circle p-3 text-warning-emphasis">
+                        <i class="fa-solid fa-hourglass-half fs-1"></i>
+                    </div>
+                    <div>
+                        <span class="badge bg-warning text-dark rounded-pill px-3 py-1 mb-1 fw-bold">PENDING APPROVAL</span>
+                        <h4 class="fw-bold m-0 text-dark">Subscription Purchase Awaiting Approval</h4>
+                        <p class="text-secondary small m-0 mt-1">
+                            Your request for <strong>{{ latest_sub.package.name if latest_sub.package else 'Package' }}</strong> is currently under review by the Super Admin. You will be activated shortly.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="card-body p-4 text-center py-5">
+                <i class="fa-solid fa-calendar-xmark fs-1 text-muted mb-3 opacity-50"></i>
+                <h4 class="fw-bold text-dark">No Active Subscription</h4>
+                <p class="text-muted">You do not have an active subscription package. Please select a plan to unlock full clinic management features.</p>
+                <a href="{{ url_for('plans_list') }}" class="btn btn-warning rounded-pill px-4 fw-bold text-dark">
+                    <i class="fa-solid fa-gem me-1"></i> Choose a Subscription Package
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Quick Help Card -->
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm rounded-4 h-100 p-4 bg-light">
+            <h5 class="fw-bold text-dark mb-2"><i class="fa-solid fa-circle-question text-primary me-2"></i>Need Assistance?</h5>
+            <p class="text-muted small">If you have submitted a payment reference or require immediate plan activation, please reach out to system administration.</p>
+            <hr>
+            <div class="fs-8 text-secondary">
+                <div class="mb-1"><i class="fa-solid fa-headset me-2"></i><strong>Super Admin Support</strong></div>
+                <div class="mb-1"><i class="fa-solid fa-envelope me-2"></i>admin@hms.com</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Subscription History Table -->
+<div class="card border-0 shadow-sm rounded-4">
+    <div class="card-header bg-transparent border-0 p-4 pb-0">
+        <h5 class="fw-bold m-0 text-dark"><i class="fa-solid fa-clock-rotate-left text-primary me-2"></i>Subscription Order History</h5>
+    </div>
+    <div class="card-body p-4">
+        {% if user_subs %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-light fs-8 text-uppercase text-muted">
+                    <tr>
+                        <th>Date Requested</th>
+                        <th>Package Plan</th>
+                        <th>Billing Cycle</th>
+                        <th>Payment Ref</th>
+                        <th>Status</th>
+                        <th>Validity Period</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for sub in user_subs %}
+                    <tr>
+                        <td class="fs-8 text-muted fw-medium">{{ sub.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td>
+                            <span class="fw-bold text-dark">{{ sub.package.name if sub.package else 'N/A' }}</span>
+                            <span class="fs-8 text-primary d-block fw-bold">₹{{ "%.2f"|format(sub.package.price) if sub.package else '0.00' }}</span>
+                        </td>
+                        <td>
+                            <span class="badge bg-secondary-subtle text-secondary-emphasis rounded-pill px-3 py-1">{{ sub.billing_cycle }}</span>
+                        </td>
+                        <td class="fs-8 text-muted">
+                            {{ sub.payment_reference if sub.payment_reference else 'None' }}
+                        </td>
+                        <td>
+                            {% if sub.status == 'Pending' %}
+                                <span class="badge bg-warning text-dark px-3 py-1 fs-8"><i class="fa-solid fa-clock me-1"></i> Pending Approval</span>
+                            {% elif sub.status == 'Approved' %}
+                                <span class="badge bg-success px-3 py-1 fs-8"><i class="fa-solid fa-circle-check me-1"></i> Approved</span>
+                            {% elif sub.status == 'Rejected' %}
+                                <span class="badge bg-danger px-3 py-1 fs-8"><i class="fa-solid fa-xmark me-1"></i> Rejected</span>
+                            {% elif sub.status == 'Expired' %}
+                                <span class="badge bg-secondary px-3 py-1 fs-8"><i class="fa-solid fa-calendar-xmark me-1"></i> Expired</span>
+                            {% else %}
+                                <span class="badge bg-secondary px-3 py-1 fs-8">{{ sub.status }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="fs-8 text-muted">
+                            {% if sub.start_date and sub.end_date %}
+                                {{ sub.start_date.strftime('%Y-%m-%d') }} to {{ sub.end_date.strftime('%Y-%m-%d') }}
+                            {% else %}
+                                Pending Activation
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-4 text-muted">
+            <p class="mb-0">No past subscription orders.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

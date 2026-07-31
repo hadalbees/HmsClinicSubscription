@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+
+{% block title %}Checkout & Payment Integration - HMS Clinic{% endblock %}
+
+{% block header_title %}Subscription Checkout & Payment{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <div class="d-flex align-items-center justify-content-between mb-4">
+            <div>
+                <h3 class="fw-bold m-0 text-dark"><i class="fa-solid fa-shield-halved text-success me-2"></i>Secure Subscription Checkout</h3>
+                <p class="text-muted small m-0">Complete your payment details to subscribe to the {{ package.name }} plan</p>
+            </div>
+            <a href="{{ url_for('plans_list') }}" class="btn btn-light btn-sm rounded-pill px-3 border">
+                <i class="fa-solid fa-arrow-left me-1"></i> Back to Plans
+            </a>
+        </div>
+
+        <div class="row g-4">
+            <!-- Left Side: Order Summary -->
+            <div class="col-lg-5">
+                <div class="card border-0 shadow-sm rounded-4 h-100 bg-gradient text-dark p-4" style="background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);">
+                    <span class="badge {% if package.billing_cycle == 'Monthly' %}bg-info{% elif package.billing_cycle == 'Quarterly' %}bg-warning text-dark{% else %}bg-success{% endif %} rounded-pill px-3 py-1 text-uppercase fw-bold align-self-start mb-3" style="width: fit-content;">
+                        {{ package.billing_cycle }} Package
+                    </span>
+
+                    <h3 class="fw-extrabold text-dark mb-1">{{ package.name }}</h3>
+                    <p class="text-muted small">{{ package.description or 'Comprehensive HMS features included.' }}</p>
+
+                    <hr class="my-3">
+
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-muted">Plan Duration:</span>
+                        <span class="fw-bold text-dark"><i class="fa-solid fa-calendar-days text-primary me-1"></i>{{ package.duration_days }} Days Validity</span>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-muted">Package Price:</span>
+                        <span class="fw-bold text-dark">₹{{ "%.2f"|format(package.price) }}</span>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-muted">Taxes & Fees:</span>
+                        <span class="fw-semibold text-success">₹0.00 (Included)</span>
+                    </div>
+
+                    <hr class="my-3">
+
+                    <div class="d-flex justify-content-between align-items-center p-3 rounded-3 bg-white shadow-sm mb-4">
+                        <span class="fw-bold fs-6 text-dark">Total Amount Due:</span>
+                        <span class="fs-3 fw-extrabold text-primary">₹{{ "%.2f"|format(package.price) }}</span>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="fw-bold text-uppercase fs-8 text-muted mb-2" style="letter-spacing: 0.05em;">Included Features:</div>
+                        <ul class="list-unstyled mb-0">
+                            {% for feature in package.features.split(',') if package.features %}
+                            <li class="mb-1.5 d-flex align-items-start gap-2 fs-7 text-secondary">
+                                <i class="fa-solid fa-circle-check text-success mt-1"></i>
+                                <span>{{ feature.strip() }}</span>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+
+                    <div class="mt-auto pt-3 border-top text-center fs-8 text-muted">
+                        <i class="fa-solid fa-lock text-success me-1"></i> 256-Bit SSL Encrypted & Instant Activation Request
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Side: Payment Methods Integration -->
+            <div class="col-lg-7">
+                <div class="card border-0 shadow-sm rounded-4 p-4">
+                    <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-credit-card text-primary me-2"></i>Select Payment Method</h5>
+
+                    <form method="POST" action="{{ url_for('subscription_checkout', package_id=package.id) }}">
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold text-dark">Clinic / Hospital Name <span class="text-danger">*</span></label>
+                            <input type="text" name="clinic_name" class="form-control rounded-3" placeholder="e.g. City Health Clinic" value="{{ current_user.full_name }}'s Clinic" required>
+                        </div>
+
+                        <!-- Payment Method Tabs / Options -->
+                        <div class="row g-2 mb-4">
+                            <div class="col-4">
+                                <input type="radio" class="btn-check" name="payment_method" id="payCard" value="Credit/Debit Card" checked onclick="togglePaymentView('card')">
+                                <label class="btn btn-outline-primary w-100 py-3 rounded-3 text-center" for="payCard">
+                                    <i class="fa-solid fa-credit-card fs-4 d-block mb-1"></i>
+                                    <span class="fs-8 fw-bold">Card</span>
+                                </label>
+                            </div>
+                            <div class="col-4">
+                                <input type="radio" class="btn-check" name="payment_method" id="payUPI" value="UPI / QR Code" onclick="togglePaymentView('upi')">
+                                <label class="btn btn-outline-primary w-100 py-3 rounded-3 text-center" for="payUPI">
+                                    <i class="fa-solid fa-qrcode fs-4 d-block mb-1"></i>
+                                    <span class="fs-8 fw-bold">UPI / QR</span>
+                                </label>
+                            </div>
+                            <div class="col-4">
+                                <input type="radio" class="btn-check" name="payment_method" id="payBank" value="Net Banking" onclick="togglePaymentView('bank')">
+                                <label class="btn btn-outline-primary w-100 py-3 rounded-3 text-center" for="payBank">
+                                    <i class="fa-solid fa-building-columns fs-4 d-block mb-1"></i>
+                                    <span class="fs-8 fw-bold">Net Banking</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Card Payment Section -->
+                        <div id="paymentSectionCard" class="p-3 bg-light rounded-3 mb-4">
+                            <div class="mb-3">
+                                <label class="form-label fs-8 fw-semibold text-dark">Cardholder Name</label>
+                                <input type="text" class="form-control rounded-3 fs-7" placeholder="e.g. Dr. Vignesh Ramu" value="{{ current_user.full_name }}">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fs-8 fw-semibold text-dark">Card Number</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control rounded-start-3 fs-7" placeholder="4111 •••• •••• 1111" maxlength="19">
+                                    <span class="input-group-text bg-white rounded-end-3"><i class="fa-brands fa-cc-visa text-primary me-1"></i> <i class="fa-brands fa-cc-mastercard text-danger"></i></span>
+                                </div>
+                            </div>
+                            <div class="row g-2">
+                                <div class="col-6">
+                                    <label class="form-label fs-8 fw-semibold text-dark">Expiry (MM/YY)</label>
+                                    <input type="text" class="form-control rounded-3 fs-7" placeholder="12/28">
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label fs-8 fw-semibold text-dark">CVV Code</label>
+                                    <input type="password" class="form-control rounded-3 fs-7" placeholder="•••" maxlength="4">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- UPI Payment Section -->
+                        <div id="paymentSectionUPI" class="p-3 bg-light rounded-3 mb-4 d-none">
+                            <div class="text-center p-3 bg-white rounded-3 border mb-3">
+                                <i class="fa-solid fa-qrcode display-4 text-primary mb-2"></i>
+                                <div class="fw-bold text-dark fs-7">Scan QR Code using GPay / PhonePe / Paytm</div>
+                                <span class="badge bg-secondary-subtle text-dark fs-8">UPI ID: hmsclinic@upi</span>
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label fs-8 fw-semibold text-dark">Your Virtual Payment Address (VPA / UPI ID)</label>
+                                <input type="text" class="form-control rounded-3 fs-7" placeholder="e.g. username@upi">
+                            </div>
+                        </div>
+
+                        <!-- Net Banking Section -->
+                        <div id="paymentSectionBank" class="p-3 bg-light rounded-3 mb-4 d-none">
+                            <div class="mb-3">
+                                <label class="form-label fs-8 fw-semibold text-dark">Select Your Bank</label>
+                                <select class="form-select rounded-3 fs-7">
+                                    <option selected>State Bank of India (SBI)</option>
+                                    <option>HDFC Bank</option>
+                                    <option>ICICI Bank</option>
+                                    <option>Axis Bank</option>
+                                    <option>Kotak Mahindra Bank</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold text-dark">Payment Transaction Reference ID</label>
+                            <input type="text" name="payment_reference" class="form-control rounded-3" placeholder="Auto-generated if left blank e.g. TXN-984920">
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold text-dark">Payment Notes (Optional)</label>
+                            <textarea name="payment_notes" class="form-control rounded-3" rows="2" placeholder="Any payment confirmation notes for Super Admin"></textarea>
+                        </div>
+
+                        <button type="submit" class="btn btn-success btn-lg rounded-pill w-100 fw-bold shadow">
+                            <i class="fa-solid fa-lock me-2"></i> Pay ₹{{ "%.2f"|format(package.price) }} & Complete Subscription
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function togglePaymentView(type) {
+    document.getElementById('paymentSectionCard').classList.add('d-none');
+    document.getElementById('paymentSectionUPI').classList.add('d-none');
+    document.getElementById('paymentSectionBank').classList.add('d-none');
+
+    if (type === 'card') {
+        document.getElementById('paymentSectionCard').classList.remove('d-none');
+    } else if (type === 'upi') {
+        document.getElementById('paymentSectionUPI').classList.remove('d-none');
+    } else if (type === 'bank') {
+        document.getElementById('paymentSectionBank').classList.remove('d-none');
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,325 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - Hospital Management System{% endblock %}
+{% block header_title %}Clinic Dashboard Overview{% endblock %}
+
+{% block content %}
+<!-- Quick Action Bar -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card-custom p-3 bg-white d-flex flex-row flex-wrap align-items-center justify-content-between gap-3">
+            <div class="d-flex align-items-center gap-2">
+                <i class="fa-solid fa-bolt text-warning fs-4"></i>
+                <div>
+                    <h6 class="m-0 fw-bold">Quick Administrative Actions</h6>
+                    <small class="text-muted">Directly initiate common clinical workflows</small>
+                </div>
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+                <a href="{{ url_for('patients_create') }}" class="btn btn-outline-primary btn-sm rounded-pill">
+                    <i class="fa-solid fa-user-plus me-1"></i> Add Patient
+                </a>
+                <a href="{{ url_for('prescription_create') }}" class="btn btn-outline-success btn-sm rounded-pill">
+                    <i class="fa-solid fa-file-prescription me-1"></i> New Prescription
+                </a>
+                <a href="{{ url_for('billing_create') }}" class="btn btn-primary btn-sm rounded-pill">
+                    <i class="fa-solid fa-receipt me-1"></i> Create Bill
+                </a>
+                <a href="{{ url_for('stock_create') }}" class="btn btn-outline-secondary btn-sm rounded-pill">
+                    <i class="fa-solid fa-boxes-stacked me-1"></i> Add Stock Item
+                </a>
+                <a href="{{ url_for('purchases_create') }}" class="btn btn-outline-info btn-sm rounded-pill">
+                    <i class="fa-solid fa-cart-flatbed me-1"></i> Receive Purchase Bill
+                </a>
+                <a href="{{ url_for('accounts_create') }}" class="btn btn-outline-danger btn-sm rounded-pill">
+                    <i class="fa-solid fa-money-bill-transfer me-1"></i> Log Expense
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Metrics Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4 col-xl-2">
+        <div class="stat-card">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <span class="text-muted small fw-semibold">Total Patients</span>
+                <div class="stat-icon primary">
+                    <i class="fa-solid fa-hospital-user"></i>
+                </div>
+            </div>
+            <h3 class="fw-bold mb-0">{{ total_patients }}</h3>
+            <small class="text-success"><i class="fa-solid fa-user-check me-1"></i>Registered</small>
+        </div>
+    </div>
+
+    <div class="col-md-4 col-xl-2">
+        <div class="stat-card">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <span class="text-muted small fw-semibold">Prescriptions</span>
+                <div class="stat-icon purple">
+                    <i class="fa-solid fa-file-prescription"></i>
+                </div>
+            </div>
+            <h3 class="fw-bold mb-0">{{ total_prescriptions }}</h3>
+            <small class="text-muted"><i class="fa-solid fa-notes-medical me-1"></i>Issued</small>
+        </div>
+    </div>
+
+    <div class="col-md-4 col-xl-2">
+        <div class="stat-card">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <span class="text-muted small fw-semibold">Total Revenue</span>
+                <div class="stat-icon success">
+                    <i class="fa-solid fa-dollar-sign"></i>
+                </div>
+            </div>
+            <h3 class="fw-bold mb-0">₹{{ "%.2f"|format(total_revenue) }}</h3>
+            <small class="text-success"><i class="fa-solid fa-arrow-trend-up me-1"></i>Billing Income</small>
+        </div>
+    </div>
+
+    <div class="col-md-4 col-xl-2">
+        <div class="stat-card">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <span class="text-muted small fw-semibold">Total Bills</span>
+                <div class="stat-icon info">
+                    <i class="fa-solid fa-file-invoice"></i>
+                </div>
+            </div>
+            <h3 class="fw-bold mb-0">{{ total_bills }}</h3>
+            <small class="text-muted"><i class="fa-solid fa-list me-1"></i>Invoices Generated</small>
+        </div>
+    </div>
+
+    <div class="col-md-4 col-xl-2">
+        <div class="stat-card">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <span class="text-muted small fw-semibold">Low Stock Alert</span>
+                <div class="stat-icon warning">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+            </div>
+            <h3 class="fw-bold mb-0 text-warning">{{ low_stock_count }}</h3>
+            <small class="text-muted"><i class="fa-solid fa-box-open me-1"></i>Items to reorder</small>
+        </div>
+    </div>
+
+    <div class="col-md-4 col-xl-2">
+        <div class="stat-card">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <span class="text-muted small fw-semibold">Net Profit</span>
+                <div class="stat-icon {% if net_profit >= 0 %}success{% else %}danger{% endif %}">
+                    <i class="fa-solid fa-chart-pie"></i>
+                </div>
+            </div>
+            <h3 class="fw-bold mb-0 {% if net_profit >= 0 %}text-success{% else %}text-danger{% endif %}">₹{{ "%.2f"|format(net_profit) }}</h3>
+            <small class="text-muted"><i class="fa-solid fa-wallet me-1"></i>Ledger Balance</small>
+        </div>
+    </div>
+</div>
+
+<!-- Charts & Stock Alerts Row -->
+<div class="row g-4 mb-4">
+    <!-- Financial Overview Chart -->
+    <div class="col-lg-8">
+        <div class="card-custom h-100 p-3">
+            <div class="d-flex align-items-center justify-content-between border-bottom pb-3 mb-3">
+                <div>
+                    <h6 class="fw-bold m-0"><i class="fa-solid fa-chart-column text-primary me-2"></i>Financial Overview & Cash Flow</h6>
+                    <small class="text-muted">Income vs Expenses comparison</small>
+                </div>
+                <a href="{{ url_for('accounts_summary') }}" class="btn btn-sm btn-light border">View Report</a>
+            </div>
+            <div style="height: 280px;">
+                <canvas id="financialChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Low Stock Inventory Alerts -->
+    <div class="col-lg-4">
+        <div class="card-custom h-100 p-3">
+            <div class="d-flex align-items-center justify-content-between border-bottom pb-3 mb-3">
+                <div>
+                    <h6 class="fw-bold m-0 text-warning"><i class="fa-solid fa-boxes-stacked me-2"></i>Low Stock Warnings</h6>
+                    <small class="text-muted">Medicines at or below reorder level</small>
+                </div>
+                <a href="{{ url_for('stock_list') }}" class="btn btn-sm btn-outline-warning">Stock List</a>
+            </div>
+
+            {% if low_stock_items %}
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead>
+                            <tr class="small text-muted">
+                                <th>Medicine</th>
+                                <th>Qty</th>
+                                <th>Reorder</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in low_stock_items %}
+                                <tr>
+                                    <td>
+                                        <div class="fw-semibold text-dark small">{{ item.item_name }}</div>
+                                        <small class="text-muted fs-8">{{ item.category }}</small>
+                                    </td>
+                                    <td><span class="badge bg-danger">{{ item.quantity }}</span></td>
+                                    <td class="small text-muted">{{ item.min_reorder_level }}</td>
+                                    <td>
+                                        <a href="{{ url_for('stock_edit', item_id=item.id) }}" class="btn btn-xs btn-outline-primary py-0 px-2 small">Restock</a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="text-center py-4 text-muted">
+                    <i class="fa-solid fa-circle-check fs-1 text-success mb-2"></i>
+                    <p class="mb-0 small">All medicine stock levels are sufficient!</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Recent Activity Tables -->
+<div class="row g-4">
+    <!-- Recent Patients -->
+    <div class="col-lg-6">
+        <div class="card-custom p-3">
+            <div class="d-flex align-items-center justify-content-between border-bottom pb-3 mb-3">
+                <h6 class="fw-bold m-0"><i class="fa-solid fa-users text-primary me-2"></i>Recently Registered Patients</h6>
+                <a href="{{ url_for('patients_list') }}" class="btn btn-sm btn-light border">All Patients</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle table-custom">
+                    <thead>
+                        <tr>
+                            <th>Patient Code</th>
+                            <th>Name</th>
+                            <th>Age/Gender</th>
+                            <th>Phone</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for p in recent_patients %}
+                            <tr>
+                                <td><span class="badge bg-light text-dark border">{{ p.patient_code }}</span></td>
+                                <td class="fw-medium">{{ p.name }}</td>
+                                <td>{{ p.age }} yrs / {{ p.gender }}</td>
+                                <td class="small text-muted">{{ p.phone }}</td>
+                                <td>
+                                    <a href="{{ url_for('patients_view', patient_id=p.id) }}" class="btn btn-sm btn-light border py-1 px-2" title="View Profile">
+                                        <i class="fa-solid fa-eye text-primary"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                        {% else %}
+                            <tr><td colspan="5" class="text-center text-muted py-3">No patient records found.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Bills -->
+    <div class="col-lg-6">
+        <div class="card-custom p-3">
+            <div class="d-flex align-items-center justify-content-between border-bottom pb-3 mb-3">
+                <h6 class="fw-bold m-0"><i class="fa-solid fa-file-invoice-dollar text-success me-2"></i>Recent Medical Invoices</h6>
+                <a href="{{ url_for('billing_list') }}" class="btn btn-sm btn-light border">All Invoices</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle table-custom">
+                    <thead>
+                        <tr>
+                            <th>Invoice #</th>
+                            <th>Patient</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for b in recent_bills %}
+                            <tr>
+                                <td class="fw-semibold">{{ b.bill_no }}</td>
+                                <td>{{ b.patient_name }}</td>
+                                <td class="fw-bold text-dark">₹{{ "%.2f"|format(b.total_amount) }}</td>
+                                <td>
+                                    {% if b.payment_status == 'Paid' %}
+                                        <span class="badge bg-success">Paid</span>
+                                    {% elif b.payment_status == 'Partial' %}
+                                        <span class="badge bg-warning text-dark">Partial</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">Unpaid</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('billing_print', bill_id=b.id) }}" class="btn btn-sm btn-light border py-1 px-2" title="Print Bill">
+                                        <i class="fa-solid fa-print text-secondary"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                        {% else %}
+                            <tr><td colspan="5" class="text-center text-muted py-3">No billing records generated yet.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const ctx = document.getElementById('financialChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['Total Revenue', 'Total Expenses', 'Net Profit'],
+                datasets: [{
+                    label: 'Amount (₹)',
+                    data: [{{ total_revenue }}, {{ total_expenses }}, {{ net_profit }}],
+                    backgroundColor: [
+                        'rgba(34, 197, 94, 0.75)',
+                        'rgba(239, 68, 68, 0.75)',
+                        'rgba(37, 99, 235, 0.75)'
+                    ],
+                    borderColor: [
+                        '#16a34a',
+                        '#dc2626',
+                        '#2563eb'
+                    ],
+                    borderWidth: 1.5,
+                    borderRadius: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) { return '₹' + value; }
+                        }
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

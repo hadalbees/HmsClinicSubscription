@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}HMS - Hospital Management System{% endblock %}</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="app-wrapper">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar no-print">
+            <div class="sidebar-brand">
+                <i class="fa-solid fa-hospital"></i>
+                <span>HMS Clinic</span>
+            </div>
+
+            <a href="{{ url_for('profile') }}" class="d-block text-decoration-none px-3 py-2 text-muted fs-7 border-bottom border-secondary border-opacity-25" title="Click to Edit Profile">
+                <small class="text-uppercase text-xs fw-semibold" style="letter-spacing:0.05em; color: #64748b;">Logged in as</small>
+                <div class="text-white fw-medium text-truncate">{{ current_user.full_name if current_user and current_user.is_authenticated else 'Guest' }} <i class="fa-solid fa-pen-to-square ms-1 text-primary fs-8"></i></div>
+                <span class="badge bg-primary fs-8 py-1 px-2 mt-1">{{ current_user.role|capitalize if current_user and current_user.is_authenticated else 'Superadmin' }}</span>
+            </a>
+
+            <ul class="sidebar-menu">
+                {% if current_user and current_user.is_superadmin %}
+                <li class="sidebar-heading text-warning"><i class="fa-solid fa-crown me-1"></i> Super Admin Portal</li>
+                <li>
+                    <a href="{{ url_for('superadmin_dashboard') }}" class="sidebar-link {% if request.endpoint == 'superadmin_dashboard' %}active{% endif %}">
+                        <i class="fa-solid fa-gauge-high"></i>
+                        <span>SaaS Dashboard</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('superadmin_packages') }}" class="sidebar-link {% if 'superadmin_package' in request.endpoint %}active{% endif %}">
+                        <i class="fa-solid fa-box-archive"></i>
+                        <span>Manage Packages</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('superadmin_subscriptions') }}" class="sidebar-link {% if 'superadmin_subscription' in request.endpoint %}active{% endif %}">
+                        <i class="fa-solid fa-file-signature"></i>
+                        <span>Subscription Requests</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('superadmin_users') }}" class="sidebar-link {% if 'superadmin_user' in request.endpoint %}active{% endif %}">
+                        <i class="fa-solid fa-users-gear"></i>
+                        <span>Manage Clinic Accounts</span>
+                    </a>
+                </li>
+                {% else %}
+                <li class="sidebar-heading text-info"><i class="fa-solid fa-gem me-1"></i> Plan & Subscription</li>
+                <li>
+                    <a href="{{ url_for('my_subscription_plan') }}" class="sidebar-link {% if request.endpoint == 'my_subscription_plan' %}active{% endif %}">
+                        <i class="fa-solid fa-id-card"></i>
+                        <span>My Subscription</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('plans_list') }}" class="sidebar-link {% if request.endpoint == 'plans_list' %}active{% endif %}">
+                        <i class="fa-solid fa-cubes-stacked"></i>
+                        <span>Upgrade / Plans</span>
+                    </a>
+                </li>
+
+                <li class="sidebar-heading">Core Dashboard</li>
+                <li>
+                    <a href="{{ url_for('dashboard') }}" class="sidebar-link {% if request.endpoint == 'dashboard' %}active{% endif %}">
+                        <i class="fa-solid fa-chart-line"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+
+                <li class="sidebar-heading">Clinical & Care</li>
+                <li>
+                    <a href="{{ url_for('patients_list') }}" class="sidebar-link {% if 'patient' in request.endpoint %}active{% endif %}">
+                        <i class="fa-solid fa-hospital-user"></i>
+                        <span>Patients</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('prescriptions_list') }}" class="sidebar-link {% if 'prescription' in request.endpoint %}active{% endif %}">
+                        <i class="fa-solid fa-file-prescription"></i>
+                        <span>E-Prescriptions</span>
+                    </a>
+                </li>
+
+                <li class="sidebar-heading">Pharmacy & Supplies</li>
+                <li>
+                    <a href="{{ url_for('stock_list') }}" class="sidebar-link {% if 'stock' in request.endpoint %}active{% endif %}">
+                        <i class="fa-solid fa-boxes-stacked"></i>
+                        <span>Stock Inventory</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('purchases_list') }}" class="sidebar-link {% if 'purchases' in request.endpoint %}active{% endif %}">
+                        <i class="fa-solid fa-cart-flatbed"></i>
+                        <span>Supplier Purchases</span>
+                    </a>
+                </li>
+
+                <li class="sidebar-heading">Billing & Financials</li>
+                <li>
+                    <a href="{{ url_for('billing_list') }}" class="sidebar-link {% if 'billing' in request.endpoint %}active{% endif %}">
+                        <i class="fa-solid fa-file-invoice-dollar"></i>
+                        <span>Medical Billing</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('accounts_list') }}" class="sidebar-link {% if request.endpoint == 'accounts_list' %}active{% endif %}">
+                        <i class="fa-solid fa-vault"></i>
+                        <span>Financial Ledger</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('accounts_summary') }}" class="sidebar-link {% if request.endpoint == 'accounts_summary' %}active{% endif %}">
+                        <i class="fa-solid fa-pie-chart"></i>
+                        <span>Account Summary</span>
+                    </a>
+                </li>
+                {% endif %}
+
+                <li class="sidebar-heading">Account & System</li>
+                <li>
+                    <a href="{{ url_for('profile') }}" class="sidebar-link {% if request.endpoint == 'profile' %}active{% endif %}">
+                        <i class="fa-solid fa-user-pen"></i>
+                        <span>My Profile</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('logout') }}" class="sidebar-link text-danger">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                        <span>Logout</span>
+                    </a>
+                </li>
+            </ul>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Top Navbar -->
+            <header class="top-navbar no-print">
+                <div class="d-flex align-items-center gap-3">
+                    <h5 class="m-0 fw-bold text-dark">{% block header_title %}Hospital Management System{% endblock %}</h5>
+                </div>
+                <div class="d-flex align-items-center gap-3">
+                    {% if current_user and current_user.is_superadmin %}
+                    <a href="{{ url_for('superadmin_package_create') }}" class="btn btn-warning btn-sm rounded-pill px-3 text-dark fw-bold">
+                        <i class="fa-solid fa-plus me-1"></i> New Package
+                    </a>
+                    <a href="{{ url_for('superadmin_user_create') }}" class="btn btn-primary btn-sm rounded-pill px-3 fw-bold">
+                        <i class="fa-solid fa-user-plus me-1"></i> Add Clinic User
+                    </a>
+                    {% else %}
+                    <a href="{{ url_for('billing_create') }}" class="btn btn-primary btn-sm rounded-pill px-3">
+                        <i class="fa-solid fa-plus me-1"></i> New Bill
+                    </a>
+                    <a href="{{ url_for('prescription_create') }}" class="btn btn-outline-primary btn-sm rounded-pill px-3">
+                        <i class="fa-solid fa-file-prescription me-1"></i> E-Prescribe
+                    </a>
+                    {% endif %}
+
+                    <div class="dropdown">
+                        <button class="btn btn-light btn-sm dropdown-toggle rounded-pill px-3 border" type="button" data-bs-toggle="dropdown">
+                            <i class="fa-solid fa-user-shield me-1 text-primary"></i> {{ current_user.full_name if current_user.is_authenticated else 'Superadmin' }}
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="min-width: 200px;">
+                            <li><span class="dropdown-item-text text-dark fw-bold"><i class="fa-solid fa-user-circle me-2 text-secondary"></i>{{ current_user.full_name if current_user.is_authenticated else 'User' }}</span></li>
+                            <li><span class="dropdown-item-text text-muted fs-8">Role: {{ current_user.role|capitalize if current_user.is_authenticated else 'Superadmin' }}</span></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item fw-semibold" href="{{ url_for('profile') }}"><i class="fa-solid fa-user-pen me-2 text-primary"></i> Edit Profile & Settings</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item text-danger fw-semibold" href="{{ url_for('logout') }}"><i class="fa-solid fa-right-from-bracket me-2"></i> Logout</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Flash Alert Messages -->
+            <div class="container-fluid px-4 pt-3 no-print">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category if category != 'error' else 'danger' }} alert-dismissible fade show shadow-sm border-0 d-flex align-items-center justify-content-between" role="alert">
+                                <div>
+                                    <i class="fa-solid {% if category == 'success' %}fa-circle-check{% elif category == 'danger' or category == 'error' %}fa-triangle-exclamation{% else %}fa-circle-info{% endif %} me-2"></i>
+                                    {{ message }}
+                                </div>
+                                <button type="button" class="btn-close ms-3" data-bs-dismiss="alert" aria-label="Close" onclick="this.closest('.alert').remove()"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+            </div>
+
+            <!-- Body Page Content -->
+            <div class="container-fluid p-4">
+                {% block content %}{% endblock %}
+            </div>
+        </main>
+    </div>
+
+    <!-- Bootstrap 5 Bundle JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/bootstrap.bundle.min.js"></script>
+    <!-- Custom JS -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            document.addEventListener('click', function(e) {
+                var btn = e.target.closest('.btn-close');
+                if (btn) {
+                    var alertBox = btn.closest('.alert');
+                    if (alertBox) {
+                        alertBox.remove();
+                    }
+                }
+            });
+        });
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

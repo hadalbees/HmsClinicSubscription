@@ -1,0 +1,231 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if item %}Edit Stock Item{% else %}Add New Stock Item{% endif %} - HMS{% endblock %}
+{% block header_title %}{% if item %}Edit Stock Item{% else %}Add Medicine / Stock Item{% endif %}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card-custom p-4">
+            <div class="d-flex align-items-center justify-content-between border-bottom pb-3 mb-4">
+                <div>
+                    <h5 class="fw-bold m-0">{% if item %}Edit Stock Item: {{ item.item_name }}{% else %}Add Inventory Item{% endif %}</h5>
+                    <small class="text-muted">Enter pricing, pack details, total unit stock, and expiry</small>
+                </div>
+                <a href="{{ url_for('stock_list') }}" class="btn btn-outline-secondary btn-sm rounded-pill">
+                    <i class="fa-solid fa-arrow-left me-1"></i> Back to Inventory
+                </a>
+            </div>
+
+            <form action="{% if item %}{{ url_for('stock_edit', item_id=item.id) }}{% else %}{{ url_for('stock_create') }}{% endif %}" method="POST">
+                <div class="row g-3 mb-3">
+                    <div class="col-md-8">
+                        <label class="form-label fw-semibold small text-muted">Item / Medicine Name *</label>
+                        <input type="text" name="item_name" class="form-control" placeholder="e.g. Paracetamol 500mg, Amoxicillin, Cough Syrup..." value="{{ item.item_name if item else '' }}" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold small text-muted">Category *</label>
+                        <select name="category" id="category_select" class="form-select" required>
+                            <option value="">Select Category</option>
+                            {% for cat in ['Tablet', 'Capsule', 'Syrup', 'Injection', 'Ointment', 'Equipment', 'Supplies'] %}
+                                <option value="{{ cat }}" {% if item and item.category == cat %}selected{% endif %}>{{ cat }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Pack / Strip Auto-Calculator Box -->
+                <div class="bg-light p-3 rounded border mb-3" id="strip_calculator_box">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <h6 class="fw-bold m-0 text-primary" id="calc_box_title"><i class="fa-solid fa-calculator me-2"></i>Pack / Strip Auto-Calculator</h6>
+                        <small class="text-muted" id="calc_box_subtitle">Enter Pack details to auto-calculate Unit price & total stock</small>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label small text-muted" id="label_calc_strips">Packs / Strips Received</label>
+                            <input type="number" id="calc_strips" name="strip_quantity" class="form-control form-control-sm" placeholder="e.g. 10" value="{{ item.strip_quantity if item else '' }}" min="0">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small text-muted" id="label_calc_units">Units Per Pack</label>
+                            <input type="number" id="calc_tablets_per_strip" name="tablets_per_strip" class="form-control form-control-sm" placeholder="e.g. 10" value="{{ item.tablets_per_strip if item else '10' }}" min="1">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small text-muted" id="label_calc_cost_pack">Cost Price per Pack (₹)</label>
+                            <input type="number" step="0.01" id="calc_cost_strip_price" class="form-control form-control-sm" placeholder="e.g. 20.00" min="0">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small text-muted" id="label_calc_sell_pack">Selling Price per Pack (₹)</label>
+                            <input type="number" step="0.01" id="calc_strip_price" name="strip_price" class="form-control form-control-sm" placeholder="e.g. 50.00" value="{{ item.strip_price if item else '' }}" min="0">
+                        </div>
+                    </div>
+                    <div class="mt-2 text-muted fs-8">
+                        <i class="fa-solid fa-circle-info text-info me-1"></i>
+                        Auto-Formula: <strong>Total Unit Quantity</strong> = Packs × Units Per Pack | <strong>Unit Price</strong> = Pack Price ÷ Units Per Pack
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold small text-muted">Batch Number</label>
+                        <input type="text" name="batch_number" class="form-control" placeholder="e.g. BATCH-2026-90" value="{{ item.batch_number if item else '' }}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold small text-muted">Supplier / Vendor Name</label>
+                        <input type="text" name="supplier_name" class="form-control" placeholder="e.g. Pharma Global Distributors" value="{{ item.supplier_name if item else '' }}">
+                    </div>
+                </div>
+
+                <!-- Unit Pricing & Total Unit Stock (Calculated or Manual) -->
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold small text-muted" id="cost_price_label">Unit Cost Price (₹) *</label>
+                        <input type="number" step="0.01" name="cost_price" id="cost_price_input" class="form-control" placeholder="0.00" value="{{ item.cost_price if item else '0.00' }}" min="0" required>
+                        <small class="text-muted">Backend cost per individual unit</small>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold small text-muted" id="selling_price_label">Unit Selling Price (₹) *</label>
+                        <input type="number" step="0.01" name="selling_price" id="selling_price_input" class="form-control" placeholder="0.00" value="{{ item.selling_price if item else '0.00' }}" min="0" required>
+                        <small class="text-muted">Charged during Patient Billing</small>
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-4">
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold small text-muted" id="quantity_label">Total Unit Quantity *</label>
+                        <input type="number" name="quantity" id="quantity_input" class="form-control" placeholder="100" value="{{ item.quantity if item else '100' }}" min="0" required>
+                        <small class="text-muted">Available unit stock</small>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold small text-muted">Min Reorder Level (Units) *</label>
+                        <input type="number" name="min_reorder_level" class="form-control" placeholder="15" value="{{ item.min_reorder_level if item else '10' }}" min="0" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold small text-muted">Expiry Date</label>
+                        <input type="date" name="expiry_date" class="form-control" value="{{ item.expiry_date.strftime('%Y-%m-%d') if item and item.expiry_date else '' }}">
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2 border-top pt-3">
+                    <a href="{{ url_for('stock_list') }}" class="btn btn-light border px-4">Cancel</a>
+                    <button type="submit" class="btn btn-primary px-4 rounded-pill">
+                        <i class="fa-solid fa-floppy-disk me-1"></i> Save Stock Item
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const categorySelect = document.getElementById('category_select');
+    const stripBox = document.getElementById('strip_calculator_box');
+    
+    const labelStrips = document.getElementById('label_calc_strips');
+    const labelUnits = document.getElementById('label_calc_units');
+    const labelCostPack = document.getElementById('label_calc_cost_pack');
+    const labelSellPack = document.getElementById('label_calc_sell_pack');
+
+    const costLabel = document.getElementById('cost_price_label');
+    const sellLabel = document.getElementById('selling_price_label');
+    const qtyLabel = document.getElementById('quantity_label');
+
+    const stripsInput = document.getElementById('calc_strips');
+    const tabsPerStripInput = document.getElementById('calc_tablets_per_strip');
+    const costStripPriceInput = document.getElementById('calc_cost_strip_price');
+    const stripPriceInput = document.getElementById('calc_strip_price');
+
+    const totalQtyInput = document.getElementById('quantity_input');
+    const costPriceInput = document.getElementById('cost_price_input');
+    const sellingPriceInput = document.getElementById('selling_price_input');
+
+    function updateCategoryUI() {
+        const cat = categorySelect.value;
+        if (cat === 'Tablet' || cat === 'Capsule') {
+            if (stripBox) stripBox.style.display = 'block';
+            if (labelStrips) labelStrips.textContent = 'Strips Received';
+            if (labelUnits) labelUnits.textContent = 'Tablets / Capsules Per Strip';
+            if (labelCostPack) labelCostPack.textContent = 'Cost Price per Strip (₹)';
+            if (labelSellPack) labelSellPack.textContent = 'Selling Price per Strip (₹)';
+
+            if (costLabel) costLabel.textContent = 'Per-Tablet Cost Price (₹) *';
+            if (sellLabel) sellLabel.textContent = 'Per-Tablet Selling Price (₹) *';
+            if (qtyLabel) qtyLabel.textContent = 'Total Tablets / Units in Stock *';
+
+        } else if (cat === 'Injection') {
+            if (stripBox) stripBox.style.display = 'block';
+            if (labelStrips) labelStrips.textContent = 'Boxes / Packs Received';
+            if (labelUnits) labelUnits.textContent = 'Vials / Ampoules Per Box';
+            if (labelCostPack) labelCostPack.textContent = 'Cost Price per Box (₹)';
+            if (labelSellPack) labelSellPack.textContent = 'Selling Price per Box (₹)';
+
+            if (costLabel) costLabel.textContent = 'Cost Price per Vial (₹) *';
+            if (sellLabel) sellLabel.textContent = 'Selling Price per Vial (₹) *';
+            if (qtyLabel) qtyLabel.textContent = 'Total Vials in Stock *';
+
+        } else if (cat === 'Supplies' || cat === 'Equipment') {
+            if (stripBox) stripBox.style.display = 'block';
+            if (labelStrips) labelStrips.textContent = 'Packs / Boxes Received';
+            if (labelUnits) labelUnits.textContent = 'Items / Pieces Per Pack';
+            if (labelCostPack) labelCostPack.textContent = 'Cost Price per Pack (₹)';
+            if (labelSellPack) labelSellPack.textContent = 'Selling Price per Pack (₹)';
+
+            if (costLabel) costLabel.textContent = 'Cost Price per Piece / Item (₹) *';
+            if (sellLabel) sellLabel.textContent = 'Selling Price per Piece / Item (₹) *';
+            if (qtyLabel) qtyLabel.textContent = 'Total Pieces / Items in Stock *';
+
+        } else if (cat === 'Syrup') {
+            if (stripBox) stripBox.style.display = 'none';
+            if (costLabel) costLabel.textContent = 'Cost Price per Bottle (₹) *';
+            if (sellLabel) sellLabel.textContent = 'Selling Price per Bottle (₹) *';
+            if (qtyLabel) qtyLabel.textContent = 'Total Bottles in Stock *';
+
+        } else if (cat === 'Ointment') {
+            if (stripBox) stripBox.style.display = 'none';
+            if (costLabel) costLabel.textContent = 'Cost Price per Tube (₹) *';
+            if (sellLabel) sellLabel.textContent = 'Selling Price per Tube (₹) *';
+            if (qtyLabel) qtyLabel.textContent = 'Total Tubes in Stock *';
+
+        } else {
+            if (stripBox) stripBox.style.display = 'block';
+            if (costLabel) costLabel.textContent = 'Unit Cost Price (₹) *';
+            if (sellLabel) sellLabel.textContent = 'Unit Selling Price (₹) *';
+            if (qtyLabel) qtyLabel.textContent = 'Total Unit Quantity *';
+        }
+    }
+
+    function calculateStripValues() {
+        const strips = parseFloat(stripsInput.value) || 0;
+        const tabsPerStrip = parseFloat(tabsPerStripInput.value) || 1;
+        const stripPrice = parseFloat(stripPriceInput.value) || 0;
+        const costStripPrice = parseFloat(costStripPriceInput.value) || 0;
+
+        if (strips > 0 && tabsPerStrip > 0) {
+            totalQtyInput.value = Math.round(strips * tabsPerStrip);
+        }
+
+        if (stripPrice > 0 && tabsPerStrip > 0) {
+            const unitSelling = stripPrice / tabsPerStrip;
+            sellingPriceInput.value = unitSelling.toFixed(2);
+        }
+
+        if (costStripPrice > 0 && tabsPerStrip > 0) {
+            const unitCost = costStripPrice / tabsPerStrip;
+            costPriceInput.value = unitCost.toFixed(2);
+        }
+    }
+
+    if (categorySelect) {
+        categorySelect.addEventListener('change', updateCategoryUI);
+        updateCategoryUI();
+    }
+
+    if (stripsInput) stripsInput.addEventListener('input', calculateStripValues);
+    if (tabsPerStripInput) tabsPerStripInput.addEventListener('input', calculateStripValues);
+    if (stripPriceInput) stripPriceInput.addEventListener('input', calculateStripValues);
+    if (costStripPriceInput) costStripPriceInput.addEventListener('input', calculateStripValues);
+});
+</script>
+{% endblock %}
